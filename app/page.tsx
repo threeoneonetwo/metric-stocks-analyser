@@ -12,7 +12,7 @@ export default function Home() {
           <div className="animate-entrance bg-black px-2 py-1 font-mono text-xs font-medium uppercase tracking-[0.1em] text-metric-yellow neo-shadow">
             System status: operational
           </div>
-          <h1 className="animate-entrance delay-1 font-serif text-5xl font-black uppercase leading-[0.95] tracking-[-0.055em] text-black">
+          <h1 className="brand-serif animate-entrance delay-1 text-5xl font-black uppercase leading-[0.95] tracking-[-0.055em] text-black">
             Analyse Indian stocks in seconds
           </h1>
           <p className="animate-entrance delay-2 max-w-[32rem] text-base leading-6">

@@ -116,6 +116,10 @@ input {
   text-underline-offset: 3px;
 }
 
+.brand-serif {
+  font-family: "Times New Roman", Times, serif;
+}
+
 .terminal-grid {
   background-image: radial-gradient(circle, rgba(0, 0, 0, 0.45) 1px, transparent 1px);
   background-size: 24px 24px;
