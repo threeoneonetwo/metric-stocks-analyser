@@ -1,14 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --metric-yellow: #ffea3d;
-  --metric-ink: #0a0a0a;
+  --metric-yellow: #ffeb3b;
+  --metric-ink: #000000;
   --metric-black: #000000;
-  --metric-cream: #faf7f0;
+  --metric-cream: #f9f9f9;
   --metric-white: #ffffff;
-  --metric-green: #00c46a;
-  --metric-red: #e5484d;
-  --metric-blue: #1f4dd6;
+  --metric-green: #006c46;
+  --metric-green-bright: #6dffba;
+  --metric-red: #ba1a1a;
+  --metric-pink: #ffb2ba;
+  --metric-blue: #535f74;
+  --metric-muted: #3c4a41;
+  --metric-surface: #ffffff;
+  --metric-surface-dim: #dadada;
+  --metric-surface-variant: #e2e2e2;
   --background: var(--metric-yellow);
   --foreground: var(--metric-ink);
 }
@@ -22,8 +28,14 @@
   --color-metric-cream: var(--metric-cream);
   --color-metric-white: var(--metric-white);
   --color-metric-green: var(--metric-green);
+  --color-metric-green-bright: var(--metric-green-bright);
   --color-metric-red: var(--metric-red);
+  --color-metric-pink: var(--metric-pink);
   --color-metric-blue: var(--metric-blue);
+  --color-metric-surface: var(--metric-surface);
+  --color-metric-surface-dim: var(--metric-surface-dim);
+  --color-metric-surface-variant: var(--metric-surface-variant);
+  --color-metric-muted: var(--metric-muted);
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-source-serif);
   --font-mono: var(--font-jetbrains-mono);
@@ -42,6 +54,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-feature-settings: "tnum", "lnum";
   min-height: 100vh;
 }
 
@@ -51,8 +64,9 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(rgba(10, 10, 10, 0.22) 1px, transparent 1px);
-  background-size: 19px 19px;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.55) 1px, transparent 1px);
+  background-size: 24px 24px;
+  animation: backgroundDrift 60s linear infinite;
 }
 
 button,
@@ -61,25 +75,120 @@ input {
 }
 
 ::selection {
-  background: var(--metric-blue);
-  color: var(--metric-white);
+  background: var(--metric-green-bright);
+  color: var(--metric-ink);
 }
 
 .mono-label {
   font-family: var(--font-jetbrains-mono), monospace;
   font-size: 0.75rem;
   line-height: 1rem;
-  letter-spacing: 0;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .surface {
-  background: var(--metric-cream);
-  border: 1px solid var(--metric-black);
+  background: var(--metric-white);
+  border: 4px solid var(--metric-black);
+  box-shadow: 4px 4px 0 var(--metric-black);
 }
 
 .metric-link {
+  color: var(--metric-green);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+}
+
+.terminal-grid {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.45) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.neo-shadow {
+  box-shadow: 4px 4px 0 var(--metric-black);
+}
+
+.neo-shadow-sm {
+  box-shadow: 2px 2px 0 var(--metric-black);
+}
+
+.neo-press {
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.neo-press:active {
+  box-shadow: 0 0 0 var(--metric-black);
+  transform: translate(4px, 4px);
+}
+
+.scan-fill {
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent),
+    var(--metric-green-bright);
+  background-size: 200% 100%;
+  animation: scan 1.5s linear infinite;
+}
+
+.animate-entrance {
+  animation: springUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
+}
+
+.delay-2 {
+  animation-delay: 0.2s;
+}
+
+.delay-3 {
+  animation-delay: 0.3s;
+}
+
+.delay-4 {
+  animation-delay: 0.4s;
+}
+
+@keyframes backgroundDrift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes scan {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes springUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  70% {
+    transform: translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  .scan-fill,
+  .animate-entrance {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

@@ -30,22 +30,24 @@ export function TickerSearch() {
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="surface flex w-full max-w-2xl items-center gap-3 rounded p-2"
+      className="flex w-full flex-col gap-0 neo-shadow sm:flex-row"
     >
-      <Search className="ml-2 shrink-0" size={20} strokeWidth={1.8} />
-      <input
-        autoFocus
-        aria-label="Stock ticker"
-        placeholder="RELIANCE"
-        className="min-w-0 flex-1 bg-transparent px-1 py-3 text-lg font-medium uppercase outline-none placeholder:text-black/35"
-        {...form.register("ticker", {
-          setValueAs: normalizeTicker,
-        })}
-        onInput={(event) => {
-          event.currentTarget.value = normalizeTicker(event.currentTarget.value);
-        }}
-      />
-      <button className="h-12 rounded bg-black px-5 font-mono text-xs uppercase text-metric-yellow">
+      <label className="flex min-w-0 flex-1 items-center gap-3 border-4 border-black bg-white px-4 py-3">
+        <Search className="shrink-0" size={20} strokeWidth={2.2} />
+        <input
+          autoFocus
+          aria-label="Stock ticker"
+          placeholder="ENTER TICKER (E.G. RELIANCE)..."
+          className="min-w-0 flex-1 bg-transparent font-mono text-sm font-bold uppercase tracking-[0.05em] outline-none placeholder:text-metric-surface-dim"
+          {...form.register("ticker", {
+            setValueAs: normalizeTicker,
+          })}
+          onInput={(event) => {
+            event.currentTarget.value = normalizeTicker(event.currentTarget.value);
+          }}
+        />
+      </label>
+      <button className="neo-press border-4 border-t-0 border-black bg-black px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white sm:border-l-0 sm:border-t-4">
         Analyze
       </button>
     </form>

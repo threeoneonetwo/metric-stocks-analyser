@@ -5,52 +5,104 @@ import { TickerSearch } from "@/components/ticker-search";
 
 export default function Home() {
   return (
-    <main className="min-h-screen pb-14">
+    <main className="flex min-h-screen flex-col">
       <TopBar />
-      <section className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-        <div className="space-y-8">
-          <div className="space-y-5">
-            <p className="mono-label">NSE and BSE equity research</p>
-            <h1 className="max-w-4xl font-serif text-5xl font-bold leading-[0.95] sm:text-7xl">
-              Analyze an Indian stock in minutes.
-            </h1>
-            <p className="max-w-2xl text-base leading-7 sm:text-lg">
-              Metric Finance turns market data, peer context, and fresh Indian
-              business news into a shareable research report.
-            </p>
+      <section className="mx-auto flex w-full max-w-[42rem] flex-1 flex-col gap-10 px-4 py-10 sm:px-6">
+        <div className="flex flex-col items-center gap-6 text-center">
+          <div className="animate-entrance bg-black px-2 py-1 font-mono text-xs font-medium uppercase tracking-[0.1em] text-metric-yellow neo-shadow">
+            System status: operational
           </div>
-          <TickerSearch />
-          <div className="flex flex-wrap gap-2">
-            {coldStartTickers.map((item) => (
+          <h1 className="animate-entrance delay-1 font-serif text-5xl font-black uppercase leading-[0.95] tracking-[-0.055em] text-black sm:text-7xl">
+            Analyse Indian stocks in seconds
+          </h1>
+          <p className="animate-entrance delay-2 max-w-[32rem] text-base leading-6">
+            Our advanced agentic engine monitors the Indian equity market to
+            identify high-probability breakout patterns across thousands of
+            stocks instantly today.
+          </p>
+        </div>
+
+        <section className="flex flex-col gap-4">
+          <div className="animate-entrance delay-3">
+            <TickerSearch />
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {coldStartTickers.map((item, index) => (
               <Link
                 key={item.ticker}
                 href={`/analyze/${item.ticker}`}
-                className="rounded-full border border-black bg-metric-yellow px-4 py-2 font-mono text-xs uppercase"
+                className="neo-press border-2 border-black bg-white px-2 py-1 font-mono text-xs font-bold uppercase tracking-[0.08em] neo-shadow-sm transition hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-metric-green-bright"
                 title={item.name}
+                style={{ animationDelay: `${0.4 + index * 0.06}s` }}
               >
                 {item.ticker}
               </Link>
             ))}
           </div>
-        </div>
-        <aside
-          id="how-it-works"
-          className="surface grid gap-4 rounded-lg p-5 sm:p-6"
-        >
-          <p className="mono-label">How it works</p>
-          <div className="grid gap-4">
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2">
+          <div className="surface relative overflow-hidden p-6">
+            <div className="absolute right-0 top-0 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-green" />
+            <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-[0.1em] text-metric-green">
+              Market_pulse_01
+            </h2>
+            <div className="relative flex h-32 items-center justify-center border-2 border-dashed border-black">
+              <div className="scan-fill absolute inset-0 opacity-70" />
+              <span className="relative font-mono text-[10px] font-bold uppercase tracking-[0.1em]">
+                Scanning Nifty 50...
+              </span>
+            </div>
+          </div>
+          <div className="relative border-4 border-black bg-black p-6 text-white neo-shadow">
+            <div className="absolute right-0 top-0 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-yellow" />
+            <h2 className="mb-4 font-mono text-xs font-bold uppercase tracking-[0.1em] text-metric-yellow">
+              Realtime_vol
+            </h2>
+            <div className="flex h-32 items-end gap-1">
+              {[40, 70, 50, 90, 60].map((height, index) => (
+                <div
+                  key={index}
+                  className="w-full bg-metric-green-bright transition-all duration-500 hover:h-[95%]"
+                  style={{ height: `${height}%` }}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="surface flex flex-col gap-4 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-serif text-3xl font-black uppercase leading-none">
+                Top analyst picks
+              </h2>
+              <p className="mt-1 font-mono text-xs font-medium uppercase tracking-[0.1em] text-metric-muted">
+                Updated 15 mins ago
+              </p>
+            </div>
+            <div className="border-2 border-black bg-black px-2 py-1 font-mono text-xs font-bold uppercase text-metric-yellow">
+              Live
+            </div>
+          </div>
+          <div className="grid gap-1">
             {[
-              ["01", "Enter any NSE or BSE ticker."],
-              ["02", "Watch the report build while market facts rotate."],
-              ["03", "Read nine sections covering valuation, peers, sentiment, and risks."],
-            ].map(([step, copy]) => (
-              <div key={step} className="grid grid-cols-[44px_1fr] gap-4 border-t border-black pt-4 first:border-t-0 first:pt-0">
-                <span className="font-mono text-sm">{step}</span>
-                <p className="text-sm leading-6">{copy}</p>
+              ["01", "TATAMOTORS", "▲ 2.45%", "text-metric-green"],
+              ["02", "BHARTIARTL", "▲ 1.12%", "text-metric-green"],
+              ["03", "ZOMATO", "▼ 0.84%", "text-metric-red"],
+            ].map(([rank, ticker, change, color]) => (
+              <div
+                key={ticker}
+                className="flex justify-between border-2 border-black p-2 font-mono text-sm font-bold transition hover:bg-metric-yellow"
+              >
+                <span>
+                  {rank} {ticker}
+                </span>
+                <span className={color}>{change}</span>
               </div>
             ))}
           </div>
-        </aside>
+        </section>
       </section>
       <FooterBar />
     </main>

@@ -19,9 +19,9 @@ export function LoadingView({ ticker }: LoadingViewProps) {
   useEffect(() => {
     const factTimer = window.setInterval(() => {
       setFactIndex((current) => (current + 1) % shuffledFacts.length);
-    }, 4000);
+    }, 4500);
     const progressTimer = window.setInterval(() => {
-      setProgress((current) => Math.min(current + 8, 100));
+      setProgress((current) => Math.min(current + 6, 100));
     }, 650);
     const redirectTimer = window.setTimeout(() => {
       router.push(`/r/${ticker}`);
@@ -35,42 +35,58 @@ export function LoadingView({ ticker }: LoadingViewProps) {
   }, [router, shuffledFacts.length, ticker]);
 
   return (
-    <section className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-4xl flex-col justify-center px-4 py-16 sm:px-6">
-      <div className="surface rounded-lg p-5 sm:p-8">
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <p className="mono-label">Generating report</p>
-            <h1 className="mt-3 font-serif text-4xl leading-none sm:text-6xl">
-              {ticker}
-            </h1>
-            <p className="mt-3 text-sm">Company name will resolve from market data.</p>
-          </div>
-          <span className="mt-1 h-2 w-2 rounded-full bg-metric-green motion-safe:animate-pulse" />
+    <section className="mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-[42rem] flex-col justify-center px-4 py-10 sm:px-6">
+      <div className="mb-10 text-center">
+        <div className="mb-4 inline-block border-2 border-black bg-black px-6 py-2 font-mono text-sm font-bold uppercase tracking-[0.05em] text-metric-yellow neo-shadow">
+          Ticker: {ticker}
         </div>
-        <div className="h-3 overflow-hidden rounded-full border border-black bg-white">
+        <h1 className="font-serif text-5xl font-black uppercase leading-[0.95] tracking-[-0.04em]">
+          {ticker} Industries Ltd
+        </h1>
+      </div>
+
+      <div className="mb-10">
+        <div className="mb-2 flex items-end justify-between px-1">
+          <span className="font-mono text-sm font-bold uppercase tracking-[0.08em]">
+            Initializing data stream...
+          </span>
+          <span className="font-mono text-sm font-bold uppercase">
+            Loading {progress}%
+          </span>
+        </div>
+        <div className="h-12 w-full overflow-hidden border-4 border-black bg-white neo-shadow">
           <motion.div
-            className="h-full bg-black"
+            className="h-full border-r-4 border-black scan-fill"
+            initial={{ width: "8%" }}
             animate={{ width: `${progress}%` }}
+            style={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           />
         </div>
-        <div className="mt-8 min-h-24 border-t border-black pt-6">
-          <p className="mono-label mb-3">Market fact</p>
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={factIndex}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.28 }}
-              className="text-xl leading-8"
-            >
-              {shuffledFacts[factIndex]}
-            </motion.p>
-          </AnimatePresence>
-        </div>
-        <Link href="/" className="mono-label mt-8 inline-block metric-link">
-          Cancel
+      </div>
+
+      <div className="surface relative mb-10 flex min-h-40 items-center justify-center p-6 text-center">
+        <div className="absolute -right-1 -top-1 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-blue" />
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={factIndex}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.28 }}
+            className="font-sans text-base font-bold uppercase leading-tight"
+          >
+            {shuffledFacts[factIndex]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      <div className="text-center">
+        <Link
+          href="/"
+          className="neo-press inline-block border-4 border-black bg-white px-10 py-5 font-mono text-sm font-bold uppercase tracking-[0.05em] neo-shadow hover:bg-black hover:text-white"
+        >
+          Cancel request
         </Link>
       </div>
     </section>
