@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --metric-yellow: #ffea3d;
+  --metric-ink: #0a0a0a;
+  --metric-black: #000000;
+  --metric-cream: #faf7f0;
+  --metric-white: #ffffff;
+  --metric-green: #00c46a;
+  --metric-red: #e5484d;
+  --metric-blue: #1f4dd6;
+  --background: var(--metric-yellow);
+  --foreground: var(--metric-ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-metric-yellow: var(--metric-yellow);
+  --color-metric-ink: var(--metric-ink);
+  --color-metric-black: var(--metric-black);
+  --color-metric-cream: var(--metric-cream);
+  --color-metric-white: var(--metric-white);
+  --color-metric-green: var(--metric-green);
+  --color-metric-red: var(--metric-red);
+  --color-metric-blue: var(--metric-blue);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-source-serif);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--metric-yellow);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(10, 10, 10, 0.22) 1px, transparent 1px);
+  background-size: 19px 19px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: var(--metric-blue);
+  color: var(--metric-white);
+}
+
+.mono-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.surface {
+  background: var(--metric-cream);
+  border: 1px solid var(--metric-black);
+}
+
+.metric-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }

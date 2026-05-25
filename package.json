@@ -1,27 +1,43 @@
 {
-  "name": "project-metric-finance-overview-metric-finance",
+  "name": "metric-stocks-analyser",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.79",
+    "@hookform/resolvers": "^5.4.0",
+    "@neondatabase/serverless": "^1.1.0",
+    "ai": "^6.0.191",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.16.0",
+    "nanoid": "^5.1.11",
+    "next": "^15.5.18",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.3.5"
+    "react-hook-form": "^7.76.1",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
-    "eslint-config-next": "15.3.5",
-    "@eslint/eslintrc": "^3"
+    "eslint-config-next": "^15.5.18",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
