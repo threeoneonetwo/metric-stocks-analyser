@@ -47,11 +47,11 @@
 
 html {
   min-height: 100%;
-  background: var(--metric-yellow);
+  background: var(--metric-ink);
 }
 
 body {
-  background: var(--background);
+  background: var(--metric-ink);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   font-feature-settings: "tnum", "lnum";
@@ -59,14 +59,30 @@ body {
 }
 
 body::before {
+  display: none;
+}
+
+body > main {
+  background: var(--background);
+  box-shadow: 0 0 0 1px var(--metric-black), 0 0 64px rgba(0, 0, 0, 0.5);
+  isolation: isolate;
+  margin-inline: auto;
+  max-width: 430px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
+body > main::before {
   content: "";
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: -1;
   pointer-events: none;
   background-image: radial-gradient(circle, rgba(0, 0, 0, 0.55) 1px, transparent 1px);
   background-size: 24px 24px;
   animation: backgroundDrift 60s linear infinite;
+  z-index: -1;
 }
 
 button,
