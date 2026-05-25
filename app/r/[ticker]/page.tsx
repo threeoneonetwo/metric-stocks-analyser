@@ -67,8 +67,8 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <section className="grid overflow-hidden border-4 border-black neo-shadow sm:grid-cols-[200px_1fr]">
-          <div className="flex items-center justify-center border-b-4 border-black bg-metric-green-bright p-6 sm:border-b-0 sm:border-r-4">
+        <section className="grid overflow-hidden border-4 border-black neo-shadow">
+          <div className="flex items-center justify-center border-b-4 border-black bg-metric-green-bright p-6">
             <h2 className="text-center font-mono text-3xl font-bold uppercase leading-none">
               {report.verdict}
             </h2>
@@ -121,7 +121,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
               Values in INR CR
             </span>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2">
             {report.metrics.map(([label, value, yoy, median]) => (
               <div key={label} className="border-2 border-black bg-white p-4 neo-shadow-sm">
                 <p className="mb-2 font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">

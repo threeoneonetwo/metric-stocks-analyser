@@ -30,7 +30,7 @@ export function TickerSearch() {
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="flex w-full flex-col gap-0 neo-shadow sm:flex-row"
+      className="flex w-full flex-col gap-0 neo-shadow"
     >
       <label className="flex min-w-0 flex-1 items-center gap-3 border-4 border-black bg-white px-4 py-3">
         <Search className="shrink-0" size={20} strokeWidth={2.2} />
@@ -47,7 +47,7 @@ export function TickerSearch() {
           }}
         />
       </label>
-      <button className="neo-press border-4 border-t-0 border-black bg-black px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white sm:border-l-0 sm:border-t-4">
+      <button className="neo-press border-4 border-t-0 border-black bg-black px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white">
         Analyze
       </button>
     </form>

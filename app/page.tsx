@@ -12,7 +12,7 @@ export default function Home() {
           <div className="animate-entrance bg-black px-2 py-1 font-mono text-xs font-medium uppercase tracking-[0.1em] text-metric-yellow neo-shadow">
             System status: operational
           </div>
-          <h1 className="animate-entrance delay-1 font-serif text-5xl font-black uppercase leading-[0.95] tracking-[-0.055em] text-black sm:text-7xl">
+          <h1 className="animate-entrance delay-1 font-serif text-5xl font-black uppercase leading-[0.95] tracking-[-0.055em] text-black">
             Analyse Indian stocks in seconds
           </h1>
           <p className="animate-entrance delay-2 max-w-[32rem] text-base leading-6">
@@ -41,7 +41,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
+        <section className="grid gap-4">
           <div className="surface relative overflow-hidden p-6">
             <div className="absolute right-0 top-0 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-green" />
             <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-[0.1em] text-metric-green">
