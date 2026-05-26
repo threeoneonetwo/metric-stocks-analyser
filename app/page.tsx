@@ -14,10 +14,7 @@ export default function Home() {
           </div>
           <h1
             className="animate-entrance delay-1 text-5xl font-extrabold uppercase leading-[0.95] text-black"
-            style={{
-              fontFamily: "Arial, Helvetica, sans-serif",
-              fontWeight: 800,
-            }}
+            style={{ fontWeight: 800 }}
           >
             <span className="block">Analyse Indian stocks</span>
             <span className="block">in seconds</span>
