@@ -1,14 +1,34 @@
 import { getStoredReport, logGenerationJob, saveReport } from "@/db/reports";
-import type { ReportPayload } from "@/db/types";
+import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { generateReportPayload } from "@/services/ai/report-generator";
 import { getMarketDataService } from "@/services/marketData";
+import type { MarketSnapshot } from "@/services/marketData/types";
 import { getMockReport } from "./mock-report";
 
 const REPORT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export async function getReportForTicker(ticker: string): Promise<ReportPayload> {
+  return (await getReportViewForTicker(ticker)).payload;
+}
+
+export async function getReportViewForTicker(
+  ticker: string,
+): Promise<{ payload: ReportPayload; sourceData?: ReportSourceData }> {
   const storedReport = await getStoredReport(ticker);
-  return storedReport?.payload ?? getMockReport(ticker);
+  if (storedReport && isUsableStoredReport(storedReport)) {
+    return {
+      payload: storedReport.payload,
+      sourceData: storedReport.sourceData,
+    };
+  }
+
+  const payload = await ensureReportForTicker(ticker, { refresh: Boolean(storedReport) });
+  const refreshedReport = await getStoredReport(ticker);
+
+  return {
+    payload,
+    sourceData: refreshedReport?.sourceData,
+  };
 }
 
 export async function ensureReportForTicker(
@@ -17,8 +37,10 @@ export async function ensureReportForTicker(
 ): Promise<ReportPayload> {
   const startedAt = new Date();
   const storedReport = await getStoredReport(ticker);
+  let marketSnapshot: MarketSnapshot | undefined;
+  let marketDataError: string | undefined;
 
-  if (storedReport && !options.refresh && isFresh(storedReport.generatedAt)) {
+  if (storedReport && !options.refresh && isUsableStoredReport(storedReport)) {
     await logGenerationJob({
       ticker,
       startedAt,
@@ -30,12 +52,13 @@ export async function ensureReportForTicker(
 
   try {
     const marketData = await getMarketDataService().getSnapshot(ticker);
-    const marketSnapshot = marketData.ok && marketData.data.source !== "mock" ? marketData.data : undefined;
+    marketSnapshot = marketData.ok && marketData.data.source !== "mock" ? marketData.data : undefined;
+    marketDataError = marketData.ok ? undefined : marketData.error;
     const generatedReport = await generateReportPayload(ticker, marketSnapshot);
     const savedReport = await saveReport(generatedReport.payload, {
       ...generatedReport.sourceData,
       generatedReason: options.refresh ? "refresh" : "cache-miss",
-      marketDataError: marketData.ok ? undefined : marketData.error,
+      marketDataError,
     });
 
     await logGenerationJob({
@@ -47,6 +70,27 @@ export async function ensureReportForTicker(
 
     return savedReport?.payload ?? generatedReport.payload;
   } catch (error) {
+    if (marketSnapshot) {
+      const fallbackReport = buildMarketDataReport(ticker, marketSnapshot);
+      const savedReport = await saveReport(fallbackReport, {
+        provider: "market-data",
+        generatedReason: options.refresh ? "refresh" : "cache-miss",
+        ticker,
+        marketData: marketSnapshot,
+        marketDataError,
+      });
+
+      await logGenerationJob({
+        ticker,
+        startedAt,
+        cacheHit: false,
+        outcome: savedReport ? "ready" : "skipped_no_database",
+        errorMessage: error instanceof Error ? error.message : "AI generation failed; saved market-data fallback.",
+      });
+
+      return savedReport?.payload ?? fallbackReport;
+    }
+
     await logGenerationJob({
       ticker,
       startedAt,
@@ -55,7 +99,7 @@ export async function ensureReportForTicker(
       errorMessage: error instanceof Error ? error.message : "Unknown report generation error",
     });
 
-    if (storedReport) {
+    if (storedReport && isUsableStoredReport(storedReport)) {
       return storedReport.payload;
     }
 
@@ -65,4 +109,82 @@ export async function ensureReportForTicker(
 
 function isFresh(generatedAt: Date) {
   return Date.now() - generatedAt.getTime() < REPORT_TTL_MS;
+}
+
+function isUsableStoredReport(report: {
+  payload: ReportPayload;
+  sourceData: ReportSourceData;
+  generatedAt: Date;
+}) {
+  return isFresh(report.generatedAt) && report.sourceData.provider !== "mock" && !isMockPayload(report.payload);
+}
+
+function isMockPayload(payload: ReportPayload) {
+  const combinedText = `${payload.summary} ${payload.overview}`.toLowerCase();
+  return (
+    combinedText.includes("mocked report shell") ||
+    combinedText.includes("placeholder fundamentals") ||
+    combinedText.includes("layout fixtures")
+  );
+}
+
+function buildMarketDataReport(ticker: string, marketData: MarketSnapshot): ReportPayload {
+  const metricRows = marketData.metrics.map<ReportPayload["metrics"][number]>((metric) => [
+    metric.label,
+    metric.value,
+    "N/A",
+    "N/A",
+  ]);
+  const paddedMetrics = [
+    ...metricRows,
+    ["Sector", marketData.sector ?? "N/A", "N/A", "N/A"],
+    ["Industry", marketData.industry ?? "N/A", "N/A", "N/A"],
+    ["52W High", formatPrice(marketData.fiftyTwoWeekHigh), "N/A", "N/A"],
+    ["52W Low", formatPrice(marketData.fiftyTwoWeekLow), "N/A", "N/A"],
+  ].slice(0, 6) as ReportPayload["metrics"];
+
+  return {
+    ticker,
+    companyName: marketData.companyName,
+    price: formatPrice(marketData.price),
+    dayChange: formatPercent(marketData.dayChangePercent),
+    analyzedAt: new Intl.DateTimeFormat("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Kolkata",
+    }).format(new Date()),
+    verdict: "Data snapshot",
+    sentiment: "Market data only",
+    confidence: "Market data",
+    overview: [
+      `${marketData.companyName} is listed on ${marketData.exchange} as ${marketData.symbol}.`,
+      marketData.sector ? `Sector: ${marketData.sector}.` : "Sector data is unavailable from the current provider.",
+      marketData.industry ? `Industry: ${marketData.industry}.` : "Industry data is unavailable from the current provider.",
+      `The latest available price is ${formatPrice(marketData.price)} with a day change of ${formatPercent(marketData.dayChangePercent)}.`,
+    ].join(" "),
+    summary:
+      "This report is grounded in the latest Yahoo Finance market snapshot because AI report generation is temporarily unavailable. It uses real quote, volume, range, sector, and industry fields where Yahoo provides them. Full company fundamentals, peer medians, and news sentiment still require a licensed fundamentals/news provider.",
+    metrics: paddedMetrics,
+    peers: marketData.peers.length === 4 ? marketData.peers : ["Target", "NIFTY 50", "Sector Median", "Peer Median"],
+  };
+}
+
+function formatPrice(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  return `₹${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(value)}`;
+}
+
+function formatPercent(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(2)}%`;
 }

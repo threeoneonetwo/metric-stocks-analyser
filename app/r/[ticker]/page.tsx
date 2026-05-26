@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-react";
 import { FooterBar, TopBar } from "@/components/site-chrome";
-import { getReportForTicker } from "@/domain/report-cache";
+import { getReportViewForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { notFound } from "next/navigation";
 
@@ -16,7 +16,9 @@ export default async function ReportPage({ params }: ReportPageProps) {
     notFound();
   }
 
-  const report = await getReportForTicker(resolved.data.ticker);
+  const reportView = await getReportViewForTicker(resolved.data.ticker);
+  const report = reportView.payload;
+  const marketData = reportView.sourceData?.marketData;
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -57,19 +59,24 @@ export default async function ReportPage({ params }: ReportPageProps) {
         <section className="surface p-4">
           <h2 className="mb-4 flex items-center gap-2 font-mono text-2xl font-bold uppercase leading-none">
             <span className="h-4 w-4 bg-black" />
-            Price Action (1M)
+            Market Snapshot
           </h2>
-          <div className="relative h-48 w-full">
-            <svg className="h-full w-full" preserveAspectRatio="none" viewBox="0 0 400 100">
-              <line stroke="#e2e2e2" strokeWidth="1" x1="0" x2="400" y1="20" y2="20" />
-              <line stroke="#e2e2e2" strokeWidth="1" x1="0" x2="400" y1="50" y2="50" />
-              <line stroke="#e2e2e2" strokeWidth="1" x1="0" x2="400" y1="80" y2="80" />
-              <path d="M0,80 Q50,60 100,75 T200,45 T300,55 T400,25 V100 H0 Z" fill="rgba(0,108,70,0.12)" />
-              <path d="M0,80 Q50,60 100,75 T200,45 T300,55 T400,25" fill="none" stroke="#006c46" strokeWidth="3" />
-            </svg>
-            <div className="absolute right-2 top-2 bg-black px-2 py-1 font-mono text-xs font-bold text-metric-finance-accent neo-shadow-sm">
-              {report.price}
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              ["Price", report.price],
+              ["Day Change", report.dayChange],
+              ["Day High", formatPrice(marketData?.dayHigh ?? null)],
+              ["Day Low", formatPrice(marketData?.dayLow ?? null)],
+              ["Volume", formatNumber(marketData?.volume ?? null)],
+              ["Source", marketData?.source ?? "N/A"],
+            ].map(([label, value]) => (
+              <div key={label} className="border-2 border-black bg-white p-3 neo-shadow-sm">
+                <p className="font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
+                  {label}
+                </p>
+                <p className="mt-1 font-mono text-sm font-bold uppercase">{value}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -80,11 +87,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
             </h2>
           </div>
           <div className="bg-white p-6">
-            <p className="text-base italic leading-7">
-              Current market valuations fail to account for the strategic bridge
-              between distribution, data, and capital allocation. Short-term
-              volatility can obscure the operating leverage visible in peer context.
-            </p>
+            <p className="text-base italic leading-7">{report.summary}</p>
           </div>
         </section>
 
@@ -92,8 +95,8 @@ export default async function ReportPage({ params }: ReportPageProps) {
           <SectionHeading title="Company Overview" />
           <div className="mb-4 grid grid-cols-2 gap-2">
             {[
-              ["Sector", "Energy / Retail"],
-              ["Market Cap", "₹19.4T"],
+              ["Sector", marketData?.sector ?? "N/A"],
+              ["Market Cap", formatLargeInr(marketData?.marketCap ?? null)],
             ].map(([label, value]) => (
               <div key={label} className="border-2 border-black bg-white p-3 neo-shadow-sm">
                 <p className="font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
@@ -107,11 +110,11 @@ export default async function ReportPage({ params }: ReportPageProps) {
                 52W Range
               </p>
               <div className="mt-2 flex items-center justify-between gap-4">
-                <span className="font-mono text-xs">₹2,220</span>
+                <span className="font-mono text-xs">{formatPrice(marketData?.fiftyTwoWeekLow ?? null)}</span>
                 <div className="relative h-2 flex-1 border border-black bg-metric-surface-variant">
                   <div className="absolute right-6 top-1/2 h-4 w-3 -translate-y-1/2 bg-black" />
                 </div>
-                <span className="font-mono text-xs font-bold">₹3,024</span>
+                <span className="font-mono text-xs font-bold">{formatPrice(marketData?.fiftyTwoWeekHigh ?? null)}</span>
               </div>
             </div>
           </div>
@@ -171,19 +174,15 @@ export default async function ReportPage({ params }: ReportPageProps) {
               </div>
             </div>
             <div className="grid gap-2">
-              {["Moneycontrol", "Economic Times", "Business Standard"].map((source, index) => (
-                <div key={source} className="flex items-start justify-between gap-4 border-b-2 border-black/10 p-2 last:border-b-0">
-                  <div>
-                    <p className="font-bold">{source} placeholder headline</p>
-                    <p className="font-mono text-xs uppercase text-metric-muted">
-                      Last 30 days | 142 articles
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 font-mono text-[10px] font-bold uppercase text-white ${index === 2 ? "bg-metric-red" : "bg-metric-green"}`}>
-                    {index === 2 ? "Caution" : "Positive"}
-                  </span>
-                </div>
-              ))}
+              <div className="border-b-2 border-black/10 p-2">
+                <p className="font-bold">Sentiment signal</p>
+                <p className="mt-1 text-sm leading-6">{report.summary}</p>
+              </div>
+              <div className="p-2">
+                <p className="font-mono text-xs uppercase text-metric-muted">
+                  Live news headlines are not connected yet.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -192,9 +191,9 @@ export default async function ReportPage({ params }: ReportPageProps) {
           <SectionHeading title="Top Risks" />
           <div className="mt-4 grid gap-4">
             {[
-              [AlertTriangle, "High Impact - Regulatory", "Sudden policy shifts or antitrust scrutiny could disrupt earnings visibility.", "bg-metric-red"],
-              [TrendingDown, "Medium Impact - Global Oil", "Geopolitical tension and GRM pressure can impact the core O2C cash engine.", "bg-metric-pink"],
-              [Bolt, "Low Impact - Consumer Shift", "Cleaner-fuel adoption may change demand curves faster than legacy forecasts.", "bg-metric-green"],
+              [AlertTriangle, "Market data coverage", "Yahoo Finance currently supplies price, volume, sector, industry, and 52-week range. Full fundamentals still need a licensed provider.", "bg-metric-red"],
+              [TrendingDown, "Valuation context", "Ratios and peer medians are AI-generated until a fundamentals feed is connected.", "bg-metric-pink"],
+              [Bolt, "Refresh timing", `Market snapshot timestamp: ${formatTimestamp(marketData?.asOf ?? null)}.`, "bg-metric-green"],
             ].map(([Icon, title, copy, stripe]) => (
               <div key={title as string} className="relative overflow-hidden border-2 border-black bg-white p-4 neo-shadow-sm">
                 <div className={`absolute right-0 top-0 h-full w-2 ${stripe as string}`} />
@@ -220,6 +219,55 @@ export default async function ReportPage({ params }: ReportPageProps) {
       <FooterBar />
     </main>
   );
+}
+
+function formatPrice(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  return `₹${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(value)}`;
+}
+
+function formatLargeInr(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  if (value >= 1_00_000_00_00_000) {
+    return `₹${new Intl.NumberFormat("en-IN", {
+      maximumFractionDigits: 2,
+    }).format(value / 1_00_000_00_00_000)}L Cr`;
+  }
+
+  return `₹${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(value)}`;
+}
+
+function formatNumber(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatTimestamp(value: string | null) {
+  if (!value) {
+    return "N/A";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value));
 }
 
 function SectionHeading({ title }: { title: string }) {
