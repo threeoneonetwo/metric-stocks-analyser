@@ -13,6 +13,7 @@ export function TopBar({ reportActions = false, ticker }: TopBarProps) {
         <Link
           href="/"
           className="text-4xl font-extrabold leading-none tracking-[-0.04em] text-black"
+          style={{ fontWeight: 800 }}
         >
           metric
         </Link>
