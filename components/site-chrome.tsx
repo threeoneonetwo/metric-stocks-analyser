@@ -12,7 +12,7 @@ export function TopBar({ reportActions = false, ticker }: TopBarProps) {
       <div className="mx-auto flex h-12 max-w-[42rem] items-center justify-between">
         <Link
           href="/"
-          className="brand-serif text-4xl font-black uppercase leading-none tracking-[-0.05em] text-black"
+          className="brand-serif text-4xl font-black leading-none tracking-[-0.05em] text-black"
         >
           metric
         </Link>
