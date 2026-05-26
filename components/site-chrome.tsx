@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { Menu, RefreshCw, Share2 } from "lucide-react";
+import { Menu, RefreshCw, Share2, X } from "lucide-react";
+import { useState } from "react";
 
 type TopBarProps = {
   reportActions?: boolean;
@@ -7,6 +10,8 @@ type TopBarProps = {
 };
 
 export function TopBar({ reportActions = false, ticker }: TopBarProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-50 border-b-4 border-black bg-metric-cream px-4 py-2 neo-shadow">
       <div className="mx-auto flex h-12 max-w-[42rem] items-center justify-between">
@@ -34,12 +39,41 @@ export function TopBar({ reportActions = false, ticker }: TopBarProps) {
             </button>
           </div>
         ) : (
-          <button
-            className="neo-press inline-flex h-9 w-9 items-center justify-center border-2 border-black bg-white"
-            aria-label="Open menu"
-          >
-            <Menu size={20} strokeWidth={2.2} />
-          </button>
+          <div className="relative">
+            <button
+              className="neo-press inline-flex h-9 w-9 items-center justify-center border-2 border-black bg-white"
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              onClick={() => setMenuOpen((current) => !current)}
+              type="button"
+            >
+              {menuOpen ? (
+                <X size={20} strokeWidth={2.2} />
+              ) : (
+                <Menu size={20} strokeWidth={2.2} />
+              )}
+            </button>
+            {menuOpen ? (
+              <nav
+                aria-label="Main menu"
+                className="absolute right-0 top-12 w-44 border-4 border-black bg-white p-2 neo-shadow"
+              >
+                {[
+                  ["About", "/about"],
+                  ["Contact", "/contact"],
+                ].map(([label, href]) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="block border-2 border-black px-4 py-3 text-sm font-extrabold uppercase tracking-[0.05em] text-black hover:bg-metric-green-bright"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+            ) : null}
+          </div>
         )}
       </div>
     </header>
