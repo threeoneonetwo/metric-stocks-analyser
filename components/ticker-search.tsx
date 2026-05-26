@@ -32,13 +32,13 @@ export function TickerSearch() {
       onSubmit={form.handleSubmit(onSubmit)}
       className="flex w-full flex-col gap-0 neo-shadow"
     >
-      <label className="flex min-w-0 flex-1 items-center gap-3 border-4 border-black bg-white px-4 py-3">
+      <label className="flex min-w-0 flex-1 items-center gap-3 border-4 border-black bg-metric-finance-accent-soft px-4 py-3">
         <Search className="shrink-0" size={20} strokeWidth={2.2} />
         <input
           autoFocus
           aria-label="Stock ticker"
           placeholder="ENTER TICKER (E.G. RELIANCE)..."
-          className="min-w-0 flex-1 bg-transparent font-mono text-sm font-bold uppercase tracking-[0.05em] outline-none placeholder:text-metric-surface-dim"
+          className="min-w-0 flex-1 bg-transparent font-mono text-sm font-bold uppercase tracking-[0.05em] text-black outline-none placeholder:text-metric-blue"
           {...form.register("ticker", {
             setValueAs: normalizeTicker,
           })}

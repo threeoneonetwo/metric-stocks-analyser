@@ -8,7 +8,8 @@
   --metric-green: #006c46;
   --metric-green-bright: #6dffba;
   --metric-finance-bg: #dfeee5;
-  --metric-finance-accent: #b8c7d9;
+  --metric-finance-accent: #4f8fc6;
+  --metric-finance-accent-soft: #d5e6f5;
   --metric-red: #ba1a1a;
   --metric-pink: #ffb2ba;
   --metric-blue: #535f74;
@@ -31,6 +32,7 @@
   --color-metric-green-bright: var(--metric-green-bright);
   --color-metric-finance-bg: var(--metric-finance-bg);
   --color-metric-finance-accent: var(--metric-finance-accent);
+  --color-metric-finance-accent-soft: var(--metric-finance-accent-soft);
   --color-metric-red: var(--metric-red);
   --color-metric-pink: var(--metric-pink);
   --color-metric-blue: var(--metric-blue);
