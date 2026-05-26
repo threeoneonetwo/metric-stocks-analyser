@@ -5,12 +5,14 @@ import { LoadingView } from "./loading-view";
 
 type AnalyzePageProps = {
   params: Promise<{ ticker: string }>;
+  searchParams: Promise<{ refresh?: string }>;
 };
 
-export default async function AnalyzePage({ params }: AnalyzePageProps) {
+export default async function AnalyzePage({ params, searchParams }: AnalyzePageProps) {
   const { ticker } = await params;
+  const { refresh } = await searchParams;
   const normalizedTicker = normalizeTicker(ticker);
-  await ensureReportForTicker(normalizedTicker);
+  await ensureReportForTicker(normalizedTicker, { refresh: refresh === "1" });
 
   return (
     <main className="min-h-screen pb-14">

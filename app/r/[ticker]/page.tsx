@@ -40,7 +40,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
               Last analyzed: {report.analyzedAt}
             </span>
             <Link
-              href={`/analyze/${report.ticker}`}
+              href={`/analyze/${report.ticker}?refresh=1`}
               className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-green underline decoration-2 underline-offset-4"
             >
               <RefreshCw size={14} /> Refresh data

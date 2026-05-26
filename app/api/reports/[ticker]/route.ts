@@ -17,7 +17,10 @@ export async function GET(_request: Request, { params }: ReportApiProps) {
 export async function POST(_request: Request, { params }: ReportApiProps) {
   const { ticker } = await params;
   const normalizedTicker = normalizeTicker(ticker);
-  const report = await ensureReportForTicker(normalizedTicker);
+  const { searchParams } = new URL(_request.url);
+  const report = await ensureReportForTicker(normalizedTicker, {
+    refresh: searchParams.get("refresh") === "1",
+  });
 
   return NextResponse.json({ report });
 }

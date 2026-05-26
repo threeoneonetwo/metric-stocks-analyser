@@ -52,6 +52,15 @@ The first database-backed flow is report caching:
 - `/r/[ticker]` reads the saved report first
 - `/api/reports/[ticker]` exposes the saved/generated report as JSON
 
+## AI Reports
+
+Set `GOOGLE_GENERATIVE_AI_API_KEY` to enable Gemini-backed report generation.
+The default model is `gemini-2.5-flash`, configurable with `GEMINI_MODEL`.
+
+When the key is unavailable, the app safely falls back to the mock report
+payload. Saved reports are reused for 24 hours unless a request includes
+`?refresh=1`.
+
 ## Scripts
 
 ```bash
