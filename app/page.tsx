@@ -13,8 +13,8 @@ export default function Home() {
             System status: operational
           </div>
           <h1
-            className="animate-entrance delay-1 text-5xl font-bold uppercase leading-[0.95] text-black"
-            style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+            className="animate-entrance delay-1 text-5xl font-black uppercase leading-[0.95] text-black"
+            style={{ fontFamily: '"Arial Black", Arial, Helvetica, sans-serif' }}
           >
             Analyse Indian stocks in seconds
           </h1>
