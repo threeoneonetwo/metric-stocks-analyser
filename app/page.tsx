@@ -97,7 +97,7 @@ export default function Home() {
             ].map(([rank, ticker, change, color]) => (
               <div
                 key={ticker}
-                className="flex justify-between border-2 border-black p-2 font-mono text-sm font-bold transition hover:bg-metric-yellow"
+                className="flex justify-between border-2 border-black p-2 font-mono text-sm font-bold transition hover:bg-metric-finance-accent"
               >
                 <span>
                   {rank} {ticker}

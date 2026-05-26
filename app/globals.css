@@ -184,7 +184,7 @@ input {
   }
 
   :where(tr, label):hover {
-    background-color: var(--metric-green-bright);
+    background-color: var(--metric-finance-accent);
   }
 
   :where(a:not(.neo-press), button:not(.neo-press)):hover {
