@@ -59,26 +59,19 @@ export async function generateReportPayload(
     timeZone: "Asia/Kolkata",
   }).format(new Date());
 
-  const { object } = await generateObject({
-    model: google(process.env.GEMINI_MODEL ?? "gemini-2.5-flash"),
-    schema: reportPayloadSchema,
-    schemaName: "MetricFinanceEquityReport",
-    temperature: 0.35,
-    system:
-      "You write concise equity research for Indian NSE and BSE listed stocks. Return only grounded, cautious analysis. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. This is not financial advice.",
-    prompt: [
-      `Generate a Metric Finance equity research report for ticker ${ticker}.`,
-      `Use analyzedAt exactly as: ${analyzedAt}.`,
-      marketData
-        ? `Use this market data as the factual source. Do not contradict it: ${JSON.stringify(marketData)}`
-        : "No market data provider response is available. Use N/A for unavailable market fields.",
-      "The report must be useful for a mobile UI and must fit the provided schema.",
-      "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
-      "Use four peer labels. The first peer must be 'Target'.",
-      "The executive summary should cover business quality, valuation context, contrarian signal, sentiment, and risks.",
-      "Keep wording direct and avoid promises, ratings, or buy/sell recommendations.",
-    ].join("\n"),
-  });
+  const prompt = [
+    `Generate a Metric Finance equity research report for ticker ${ticker}.`,
+    `Use analyzedAt exactly as: ${analyzedAt}.`,
+    marketData
+      ? `Use this market data as the factual source. Do not contradict it: ${JSON.stringify(marketData)}`
+      : "No market data provider response is available. Use N/A for unavailable market fields.",
+    "The report must be useful for a mobile UI and must fit the provided schema.",
+    "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
+    "Use four peer labels. The first peer must be 'Target'.",
+    "The executive summary should cover business quality, valuation context, contrarian signal, sentiment, and risks.",
+    "Keep wording direct and avoid promises, ratings, or buy/sell recommendations.",
+  ].join("\n");
+  const { object, modelId } = await generateWithModelFallback(prompt);
 
   return {
     payload: applyMarketData(
@@ -99,9 +92,48 @@ export async function generateReportPayload(
       provider: "gemini",
       generatedReason: "cache-miss",
       ticker,
+      aiModel: modelId,
       marketData,
     },
   };
+}
+
+async function generateWithModelFallback(prompt: string) {
+  const modelIds = getGeminiModelIds();
+  const errors: string[] = [];
+
+  for (const modelId of modelIds) {
+    try {
+      const { object } = await generateObject({
+        model: google(modelId),
+        schema: reportPayloadSchema,
+        schemaName: "MetricFinanceEquityReport",
+        temperature: 0.35,
+        system:
+          "You write concise equity research for Indian NSE and BSE listed stocks. Return only grounded, cautious analysis. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. This is not financial advice.",
+        prompt,
+      });
+
+      return { object, modelId };
+    } catch (error) {
+      errors.push(`${modelId}: ${error instanceof Error ? error.message : "Unknown Gemini error"}`);
+    }
+  }
+
+  throw new Error(`Gemini generation failed for all configured models. ${errors.join(" | ")}`);
+}
+
+function getGeminiModelIds() {
+  const configuredModels = [
+    process.env.GEMINI_MODEL,
+    ...(process.env.GEMINI_FALLBACK_MODELS?.split(",") ?? []),
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+  ]
+    .map((model) => model?.trim())
+    .filter((model): model is string => Boolean(model));
+
+  return [...new Set(configuredModels)];
 }
 
 function applyMarketData(report: ReportPayload, marketData: MarketSnapshot | undefined): ReportPayload {

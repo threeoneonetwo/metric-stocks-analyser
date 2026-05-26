@@ -56,6 +56,9 @@ The first database-backed flow is report caching:
 
 Set `GOOGLE_GENERATIVE_AI_API_KEY` to enable Gemini-backed report generation.
 The default model is `gemini-2.5-flash`, configurable with `GEMINI_MODEL`.
+Set `GEMINI_FALLBACK_MODELS` to a comma-separated list, such as
+`gemini-2.5-flash-lite,gemini-2.0-flash`, so the app can retry another model
+when the primary model is quota-limited or temporarily overloaded.
 
 When the key is unavailable, the app safely falls back to the mock report
 payload. Saved reports are reused for 24 hours unless a request includes

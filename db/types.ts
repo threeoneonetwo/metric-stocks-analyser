@@ -21,6 +21,7 @@ export type ReportSourceData = {
   provider: "mock" | "gemini" | "market-data";
   generatedReason: "cache-miss" | "refresh" | "seed";
   ticker: string;
+  aiModel?: string;
   marketData?: MarketSnapshot;
   marketDataError?: string;
 };

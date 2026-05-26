@@ -6,6 +6,7 @@ import type { MarketSnapshot } from "@/services/marketData/types";
 import { getMockReport } from "./mock-report";
 
 const REPORT_TTL_MS = 24 * 60 * 60 * 1000;
+const MARKET_DATA_FALLBACK_TTL_MS = 5 * 60 * 1000;
 
 export async function getReportForTicker(ticker: string): Promise<ReportPayload> {
   return (await getReportViewForTicker(ticker)).payload;
@@ -116,7 +117,15 @@ function isUsableStoredReport(report: {
   sourceData: ReportSourceData;
   generatedAt: Date;
 }) {
-  return isFresh(report.generatedAt) && report.sourceData.provider !== "mock" && !isMockPayload(report.payload);
+  if (report.sourceData.provider === "mock" || isMockPayload(report.payload)) {
+    return false;
+  }
+
+  if (report.sourceData.provider === "market-data") {
+    return Date.now() - report.generatedAt.getTime() < MARKET_DATA_FALLBACK_TTL_MS;
+  }
+
+  return isFresh(report.generatedAt);
 }
 
 function isMockPayload(payload: ReportPayload) {
