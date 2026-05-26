@@ -1,9 +1,10 @@
 import { jsonb, pgTable, text, timestamp, uuid, integer, boolean } from "drizzle-orm/pg-core";
+import type { ReportPayload, ReportSourceData } from "./types";
 
 export const reports = pgTable("reports", {
   ticker: text("ticker").primaryKey(),
-  payload: jsonb("payload").notNull(),
-  sourceData: jsonb("source_data").notNull(),
+  payload: jsonb("payload").$type<ReportPayload>().notNull(),
+  sourceData: jsonb("source_data").$type<ReportSourceData>().notNull(),
   generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
   status: text("status").notNull(),
   version: integer("version").notNull().default(1),

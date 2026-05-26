@@ -1,4 +1,6 @@
-export function getMockReport(ticker: string) {
+import type { ReportPayload } from "@/db/types";
+
+export function getMockReport(ticker: string): ReportPayload {
   return {
     ticker,
     companyName: ticker === "RELIANCE" ? "Reliance Industries Ltd" : `${ticker} Ltd`,

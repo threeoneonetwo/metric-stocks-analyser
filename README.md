@@ -34,6 +34,24 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Database
+
+The app uses Postgres through Drizzle ORM. Set `DATABASE_URL` in `.env.local`
+for local development and in Vercel project environment variables for
+production.
+
+Create or update the database tables:
+
+```bash
+npm run db:migrate
+```
+
+The first database-backed flow is report caching:
+
+- `/analyze/[ticker]` creates or reuses a saved report record
+- `/r/[ticker]` reads the saved report first
+- `/api/reports/[ticker]` exposes the saved/generated report as JSON
+
 ## Scripts
 
 ```bash

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-react";
 import { FooterBar, TopBar } from "@/components/site-chrome";
-import { getMockReport } from "@/domain/mock-report";
+import { getReportForTicker } from "@/domain/report-cache";
 import { normalizeTicker } from "@/lib/utils";
 
 type ReportPageProps = {
@@ -10,7 +10,7 @@ type ReportPageProps = {
 
 export default async function ReportPage({ params }: ReportPageProps) {
   const { ticker } = await params;
-  const report = getMockReport(normalizeTicker(ticker));
+  const report = await getReportForTicker(normalizeTicker(ticker));
 
   return (
     <main className="flex min-h-screen flex-col">
