@@ -1,7 +1,7 @@
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { ensureReportForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
-import { normalizeTicker } from "@/lib/utils";
+import { notFound } from "next/navigation";
 import { LoadingView } from "./loading-view";
 
 type AnalyzePageProps = {
@@ -13,8 +13,12 @@ export default async function AnalyzePage({ params, searchParams }: AnalyzePageP
   const { ticker } = await params;
   const { refresh } = await searchParams;
   const resolved = await resolveTickerQuery(decodeURIComponent(ticker));
-  const normalizedTicker = resolved.ok ? resolved.data.ticker : normalizeTicker(ticker);
-  const displayName = resolved.ok ? resolved.data.companyName : normalizedTicker;
+  if (!resolved.ok) {
+    notFound();
+  }
+
+  const normalizedTicker = resolved.data.ticker;
+  const displayName = resolved.data.companyName;
   await ensureReportForTicker(normalizedTicker, { refresh: refresh === "1" });
 
   return (

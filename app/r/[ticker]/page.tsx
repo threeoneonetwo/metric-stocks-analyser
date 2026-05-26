@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-react";
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { getReportForTicker } from "@/domain/report-cache";
-import { normalizeTicker } from "@/lib/utils";
+import { resolveTickerQuery } from "@/domain/ticker-resolver";
+import { notFound } from "next/navigation";
 
 type ReportPageProps = {
   params: Promise<{ ticker: string }>;
@@ -10,7 +11,12 @@ type ReportPageProps = {
 
 export default async function ReportPage({ params }: ReportPageProps) {
   const { ticker } = await params;
-  const report = await getReportForTicker(normalizeTicker(ticker));
+  const resolved = await resolveTickerQuery(decodeURIComponent(ticker));
+  if (!resolved.ok) {
+    notFound();
+  }
+
+  const report = await getReportForTicker(resolved.data.ticker);
 
   return (
     <main className="flex min-h-screen flex-col">

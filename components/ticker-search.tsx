@@ -5,7 +5,6 @@ import { Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { normalizeTicker } from "@/lib/utils";
 
 const tickerSchema = z.object({
   query: z.string().trim().min(1, "Enter a company name or ticker").max(80),
@@ -25,7 +24,12 @@ export function TickerSearch() {
     const ticker = await resolveTicker(query);
     if (ticker) {
       router.push(`/analyze/${ticker}`);
+      return;
     }
+
+    form.setError("query", {
+      message: "Could not find that NSE/BSE stock. Try the company name or exact ticker.",
+    });
   }
 
   return (
@@ -49,6 +53,11 @@ export function TickerSearch() {
       >
         {form.formState.isSubmitting ? "Finding..." : "Analyze"}
       </button>
+      {form.formState.errors.query?.message ? (
+        <p className="border-4 border-t-0 border-black bg-white px-4 py-3 font-mono text-xs font-bold uppercase leading-5 text-metric-red">
+          {form.formState.errors.query.message}
+        </p>
+      ) : null}
     </form>
   );
 }
@@ -61,8 +70,8 @@ async function resolveTicker(query: string) {
       error?: string;
     };
 
-    return payload.result?.ticker ?? normalizeTicker(query);
+    return payload.result?.ticker ?? null;
   } catch {
-    return normalizeTicker(query);
+    return null;
   }
 }
