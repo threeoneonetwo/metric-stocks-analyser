@@ -37,7 +37,7 @@ export function LoadingView({ ticker }: LoadingViewProps) {
   return (
     <section className="mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-[42rem] flex-col justify-center px-4 py-10 sm:px-6">
       <div className="mb-10 text-center">
-        <div className="mb-4 inline-block border-2 border-black bg-black px-6 py-2 font-mono text-sm font-bold uppercase tracking-[0.05em] text-metric-yellow neo-shadow">
+        <div className="mb-4 inline-block border-2 border-black bg-black px-6 py-2 font-mono text-sm font-bold uppercase tracking-[0.05em] text-metric-finance-accent neo-shadow">
           Ticker: {ticker}
         </div>
         <h1 className="font-serif text-5xl font-black uppercase leading-[0.95] tracking-[-0.04em]">

@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  --metric-yellow: #ffeb3b;
   --metric-ink: #000000;
   --metric-black: #000000;
   --metric-cream: #f5f7f2;
@@ -24,7 +23,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-metric-yellow: var(--metric-yellow);
   --color-metric-ink: var(--metric-ink);
   --color-metric-black: var(--metric-black);
   --color-metric-cream: var(--metric-cream);

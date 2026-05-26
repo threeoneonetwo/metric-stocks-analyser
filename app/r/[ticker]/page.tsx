@@ -61,7 +61,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
               <path d="M0,80 Q50,60 100,75 T200,45 T300,55 T400,25 V100 H0 Z" fill="rgba(0,108,70,0.12)" />
               <path d="M0,80 Q50,60 100,75 T200,45 T300,55 T400,25" fill="none" stroke="#006c46" strokeWidth="3" />
             </svg>
-            <div className="absolute right-2 top-2 bg-black px-2 py-1 font-mono text-xs font-bold text-metric-yellow neo-shadow-sm">
+            <div className="absolute right-2 top-2 bg-black px-2 py-1 font-mono text-xs font-bold text-metric-finance-accent neo-shadow-sm">
               {report.price}
             </div>
           </div>
@@ -241,7 +241,7 @@ function ReportSection({
           <Bolt size={22} />
         </div>
       ) : null}
-      <span className="mb-4 inline-block bg-black px-2 py-1 font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-yellow">
+      <span className="mb-4 inline-block bg-black px-2 py-1 font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-finance-accent">
         {title}
       </span>
       {children}
