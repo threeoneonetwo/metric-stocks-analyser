@@ -107,6 +107,10 @@ input {
   background: var(--metric-white);
   border: 4px solid var(--metric-black);
   box-shadow: 4px 4px 0 var(--metric-black);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 .metric-link {
@@ -127,10 +131,20 @@ input {
 
 .neo-shadow {
   box-shadow: 4px 4px 0 var(--metric-black);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
 }
 
 .neo-shadow-sm {
   box-shadow: 2px 2px 0 var(--metric-black);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
 }
 
 .neo-press {
@@ -140,6 +154,48 @@ input {
 .neo-press:active {
   box-shadow: 0 0 0 var(--metric-black);
   transform: translate(4px, 4px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(a, button, label, tr, .surface, .neo-shadow, .neo-shadow-sm, article > section, main > section > section) {
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      color 140ms ease,
+      opacity 140ms ease,
+      transform 140ms ease;
+  }
+
+  :where(a, button, label, .surface, .neo-shadow:not(header), .neo-shadow-sm):hover {
+    transform: translate(-2px, -2px);
+  }
+
+  :where(.surface, .neo-shadow:not(header), .neo-shadow-sm):hover {
+    box-shadow: 6px 6px 0 var(--metric-black);
+  }
+
+  :where(article > section, main > section > section):hover {
+    transform: translateY(-2px);
+  }
+
+  :where(tr, label):hover {
+    background-color: var(--metric-green-bright);
+  }
+
+  :where(a:not(.neo-press), button:not(.neo-press)):hover {
+    opacity: 0.9;
+  }
+
+  .neo-press:hover {
+    box-shadow: 6px 6px 0 var(--metric-black);
+    transform: translate(-2px, -2px);
+  }
+
+  .neo-press:active {
+    box-shadow: 0 0 0 var(--metric-black);
+    transform: translate(4px, 4px);
+  }
 }
 
 .scan-fill {
