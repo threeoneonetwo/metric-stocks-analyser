@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { normalizeTicker } from "@/lib/utils";
 
 const tickerSchema = z.object({
-  ticker: z.string().min(1, "Enter an NSE or BSE ticker").max(20),
+  query: z.string().trim().min(1, "Enter a company name or ticker").max(80),
 });
 
 type TickerForm = z.infer<typeof tickerSchema>;
@@ -17,11 +17,12 @@ export function TickerSearch() {
   const router = useRouter();
   const form = useForm<TickerForm>({
     resolver: zodResolver(tickerSchema),
-    defaultValues: { ticker: "" },
+    defaultValues: { query: "" },
   });
 
-  function onSubmit(values: TickerForm) {
-    const ticker = normalizeTicker(values.ticker);
+  async function onSubmit(values: TickerForm) {
+    const query = values.query.trim();
+    const ticker = await resolveTicker(query);
     if (ticker) {
       router.push(`/analyze/${ticker}`);
     }
@@ -36,20 +37,32 @@ export function TickerSearch() {
         <Search className="shrink-0" size={20} strokeWidth={2.2} />
         <input
           autoFocus
-          aria-label="Stock ticker"
-          placeholder="ENTER TICKER (E.G. RELIANCE)..."
+          aria-label="Company name or stock ticker"
+          placeholder="ENTER COMPANY OR TICKER..."
           className="min-w-0 flex-1 bg-transparent font-mono text-sm font-bold uppercase tracking-[0.05em] text-black outline-none placeholder:text-metric-blue"
-          {...form.register("ticker", {
-            setValueAs: normalizeTicker,
-          })}
-          onInput={(event) => {
-            event.currentTarget.value = normalizeTicker(event.currentTarget.value);
-          }}
+          {...form.register("query")}
         />
       </label>
-      <button className="neo-press border-4 border-t-0 border-black bg-black px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white">
-        Analyze
+      <button
+        className="neo-press border-4 border-t-0 border-black bg-black px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white disabled:cursor-wait disabled:opacity-70"
+        disabled={form.formState.isSubmitting}
+      >
+        {form.formState.isSubmitting ? "Finding..." : "Analyze"}
       </button>
     </form>
   );
+}
+
+async function resolveTicker(query: string) {
+  try {
+    const response = await fetch(`/api/resolve?query=${encodeURIComponent(query)}`);
+    const payload = (await response.json()) as {
+      result?: { ticker?: string };
+      error?: string;
+    };
+
+    return payload.result?.ticker ?? normalizeTicker(query);
+  } catch {
+    return normalizeTicker(query);
+  }
 }

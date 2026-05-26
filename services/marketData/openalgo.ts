@@ -1,5 +1,5 @@
 import type { Result } from "@/services/result";
-import type { MarketDataService, MarketSnapshot } from "./types";
+import type { MarketDataService, MarketSnapshot, MarketSymbol } from "./types";
 
 type OpenAlgoSearchItem = {
   symbol?: string;
@@ -29,6 +29,22 @@ export function hasOpenAlgoConfig() {
 }
 
 export const openAlgoMarketData: MarketDataService = {
+  async resolveTicker(query) {
+    const baseUrl = process.env.OPENALGO_BASE_URL?.replace(/\/+$/, "");
+    const apiKey = process.env.OPENALGO_API_KEY;
+    const exchange = normalizeExchange(process.env.OPENALGO_DEFAULT_EXCHANGE);
+
+    if (!baseUrl || !apiKey) {
+      return {
+        ok: false,
+        code: "VALIDATION",
+        error: "OpenAlgo is not configured. Set OPENALGO_BASE_URL and OPENALGO_API_KEY.",
+      };
+    }
+
+    return resolveSymbol({ baseUrl, apiKey, exchange, query });
+  },
+
   async getSnapshot(ticker) {
     const baseUrl = process.env.OPENALGO_BASE_URL?.replace(/\/+$/, "");
     const apiKey = process.env.OPENALGO_API_KEY;
@@ -42,7 +58,7 @@ export const openAlgoMarketData: MarketDataService = {
       };
     }
 
-    const symbol = await resolveSymbol({ baseUrl, apiKey, exchange, ticker });
+    const symbol = await resolveSymbol({ baseUrl, apiKey, exchange, query: ticker });
     if (!symbol.ok) {
       return symbol;
     }
@@ -103,11 +119,11 @@ async function resolveSymbol(input: {
   baseUrl: string;
   apiKey: string;
   exchange: "NSE" | "BSE";
-  ticker: string;
-}): Promise<Result<{ symbol: string; name: string | null; exchange: "NSE" | "BSE" }>> {
+  query: string;
+}): Promise<Result<MarketSymbol & { name: string | null }>> {
   const search = await postOpenAlgo<OpenAlgoSearchItem[]>(`${input.baseUrl}/api/v1/search`, {
     apikey: input.apiKey,
-    query: input.ticker,
+    query: input.query,
     exchange: input.exchange,
   });
 
@@ -118,7 +134,7 @@ async function resolveSymbol(input: {
   const matches = search.data.data ?? [];
   const exactEquity = matches.find(
     (item) =>
-      item.symbol?.toUpperCase() === input.ticker.toUpperCase() &&
+      item.symbol?.toUpperCase() === input.query.toUpperCase() &&
       item.exchange === input.exchange &&
       item.instrumenttype === "EQ",
   );
@@ -131,16 +147,22 @@ async function resolveSymbol(input: {
     return {
       ok: false,
       code: "NOT_FOUND",
-      error: `OpenAlgo could not resolve ${input.exchange}:${input.ticker}.`,
+      error: `OpenAlgo could not resolve ${input.exchange}:${input.query}.`,
     };
   }
+
+  const ticker = match.symbol.replace(/\.(NS|BO)$/i, "").toUpperCase();
 
   return {
     ok: true,
     data: {
+      ticker,
       symbol: match.symbol,
+      companyName: match.name ?? ticker,
       name: match.name ?? null,
       exchange: input.exchange,
+      sector: null,
+      industry: null,
     },
   };
 }

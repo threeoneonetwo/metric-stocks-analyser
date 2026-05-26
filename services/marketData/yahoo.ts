@@ -1,5 +1,5 @@
 import type { Result } from "@/services/result";
-import type { MarketDataService, MarketSnapshot } from "./types";
+import type { MarketDataService, MarketSnapshot, MarketSymbol } from "./types";
 
 type YahooSearchResponse = {
   quotes?: Array<{
@@ -52,17 +52,11 @@ type YahooChartResponse = {
   };
 };
 
-type ResolvedYahooSymbol = {
-  symbol: string;
-  companyName: string;
-  exchange: "NSE" | "BSE";
-  sector: string | null;
-  industry: string | null;
-};
-
 const YAHOO_BASE_URL = "https://query2.finance.yahoo.com";
 
 export const yahooMarketData: MarketDataService = {
+  resolveTicker: resolveYahooSymbol,
+
   async getSnapshot(ticker) {
     const resolved = await resolveYahooSymbol(ticker);
     if (!resolved.ok) {
@@ -127,13 +121,16 @@ export const yahooMarketData: MarketDataService = {
   },
 };
 
-async function resolveYahooSymbol(ticker: string): Promise<Result<ResolvedYahooSymbol>> {
+export async function resolveYahooSymbol(query: string): Promise<Result<MarketSymbol>> {
   const requestedExchange = process.env.YAHOO_FINANCE_DEFAULT_EXCHANGE === "BSE" ? "BSE" : "NSE";
   const requestedSuffix = requestedExchange === "BSE" ? ".BO" : ".NS";
-  const normalizedTicker = ticker.trim().toUpperCase();
-  const candidates = normalizedTicker.endsWith(".NS") || normalizedTicker.endsWith(".BO")
-    ? [normalizedTicker]
-    : [`${normalizedTicker}${requestedSuffix}`, `${normalizedTicker}.NS`, `${normalizedTicker}.BO`];
+  const trimmedQuery = query.trim();
+  const upperQuery = trimmedQuery.toUpperCase();
+  const normalizedTicker = upperQuery.replace(/[^A-Z0-9]/g, "");
+  const hasYahooSuffix = upperQuery.endsWith(".NS") || upperQuery.endsWith(".BO");
+  const candidates = hasYahooSuffix
+    ? [upperQuery]
+    : [`${normalizedTicker}${requestedSuffix}`, `${normalizedTicker}.NS`, `${normalizedTicker}.BO`, trimmedQuery];
 
   const uniqueCandidates = [...new Set(candidates)];
   for (const candidate of uniqueCandidates) {
@@ -142,14 +139,17 @@ async function resolveYahooSymbol(ticker: string): Promise<Result<ResolvedYahooS
       continue;
     }
 
-    const match = search.data.quotes?.find(
+    const exactMatch = search.data.quotes?.find(
       (quote) => quote.quoteType === "EQUITY" && quote.symbol?.toUpperCase() === candidate,
     );
+    const preferredIndianMatch = search.data.quotes?.find((quote) => isIndianEquity(quote));
+    const match = exactMatch ?? preferredIndianMatch;
 
     if (match?.symbol) {
       return {
         ok: true,
         data: {
+          ticker: tickerFromYahooSymbol(match.symbol),
           symbol: match.symbol,
           companyName: match.longname ?? match.shortname ?? normalizedTicker,
           exchange: match.symbol.endsWith(".BO") ? "BSE" : "NSE",
@@ -163,8 +163,20 @@ async function resolveYahooSymbol(ticker: string): Promise<Result<ResolvedYahooS
   return {
     ok: false,
     code: "NOT_FOUND",
-    error: `Yahoo Finance could not resolve ${ticker} on NSE/BSE.`,
+    error: `Yahoo Finance could not resolve ${query} on NSE/BSE.`,
   };
+}
+
+function isIndianEquity(quote: NonNullable<YahooSearchResponse["quotes"]>[number]) {
+  return (
+    quote.quoteType === "EQUITY" &&
+    Boolean(quote.symbol) &&
+    (quote.symbol?.endsWith(".NS") || quote.symbol?.endsWith(".BO") || quote.exchange === "NSI" || quote.exchange === "BSE")
+  );
+}
+
+function tickerFromYahooSymbol(symbol: string) {
+  return symbol.replace(/\.(NS|BO)$/i, "").toUpperCase();
 }
 
 async function getYahooSearch(query: string): Promise<Result<YahooSearchResponse>> {

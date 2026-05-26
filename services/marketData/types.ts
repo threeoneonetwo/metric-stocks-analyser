@@ -1,5 +1,14 @@
 import type { Result } from "@/services/result";
 
+export type MarketSymbol = {
+  ticker: string;
+  symbol: string;
+  companyName: string;
+  exchange: "NSE" | "BSE";
+  sector: string | null;
+  industry: string | null;
+};
+
 export type MarketSnapshot = {
   ticker: string;
   symbol: string;
@@ -27,5 +36,6 @@ export type MarketSnapshot = {
 };
 
 export type MarketDataService = {
+  resolveTicker(query: string): Promise<Result<MarketSymbol>>;
   getSnapshot(ticker: string): Promise<Result<MarketSnapshot>>;
 };
