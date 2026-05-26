@@ -1,6 +1,7 @@
 import { getStoredReport, logGenerationJob, saveReport } from "@/db/reports";
 import type { ReportPayload } from "@/db/types";
 import { generateReportPayload } from "@/services/ai/report-generator";
+import { getMarketDataService } from "@/services/marketData";
 import { getMockReport } from "./mock-report";
 
 const REPORT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -28,10 +29,13 @@ export async function ensureReportForTicker(
   }
 
   try {
-    const generatedReport = await generateReportPayload(ticker);
+    const marketData = await getMarketDataService().getSnapshot(ticker);
+    const marketSnapshot = marketData.ok && marketData.data.source !== "mock" ? marketData.data : undefined;
+    const generatedReport = await generateReportPayload(ticker, marketSnapshot);
     const savedReport = await saveReport(generatedReport.payload, {
       ...generatedReport.sourceData,
       generatedReason: options.refresh ? "refresh" : "cache-miss",
+      marketDataError: marketData.ok ? undefined : marketData.error,
     });
 
     await logGenerationJob({

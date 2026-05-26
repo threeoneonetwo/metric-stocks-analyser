@@ -1,3 +1,5 @@
+import type { MarketSnapshot } from "@/services/marketData/types";
+
 export type ReportMetric = [label: string, value: string, yoy: string, median: string];
 
 export type ReportPayload = {
@@ -19,4 +21,6 @@ export type ReportSourceData = {
   provider: "mock" | "gemini" | "market-data";
   generatedReason: "cache-miss" | "refresh" | "seed";
   ticker: string;
+  marketData?: MarketSnapshot;
+  marketDataError?: string;
 };

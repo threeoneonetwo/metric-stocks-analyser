@@ -61,6 +61,24 @@ When the key is unavailable, the app safely falls back to the mock report
 payload. Saved reports are reused for 24 hours unless a request includes
 `?refresh=1`.
 
+## Market Data
+
+The market-data layer supports OpenAlgo. OpenAlgo is self-hosted, so configure
+your own instance and API key:
+
+```bash
+MARKET_DATA_PROVIDER=openalgo
+OPENALGO_BASE_URL=https://your-openalgo-domain
+OPENALGO_API_KEY=your_openalgo_key
+OPENALGO_DEFAULT_EXCHANGE=NSE
+```
+
+The adapter currently uses OpenAlgo symbol search and quotes. It can ground
+reports with company name, exchange, last traded price, day change, OHLC, volume,
+and timestamp. Fields OpenAlgo quotes do not provide, such as market cap,
+sector, and financial statements, remain unavailable until we add another
+fundamentals provider.
+
 ## Scripts
 
 ```bash

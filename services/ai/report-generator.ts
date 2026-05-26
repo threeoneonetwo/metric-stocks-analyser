@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { getMockReport } from "@/domain/mock-report";
+import type { MarketSnapshot } from "@/services/marketData/types";
 
 const generatedMetricSchema = z.object({
   label: z.string().min(1),
@@ -35,14 +36,19 @@ export function canGenerateAiReport() {
   return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 }
 
-export async function generateReportPayload(ticker: string): Promise<GeneratedReportResult> {
+export async function generateReportPayload(
+  ticker: string,
+  marketData?: MarketSnapshot,
+): Promise<GeneratedReportResult> {
   if (!canGenerateAiReport()) {
+    const mockReport = getMockReport(ticker);
     return {
-      payload: getMockReport(ticker),
+      payload: marketData ? applyMarketData(mockReport, marketData) : mockReport,
       sourceData: {
         provider: "mock",
         generatedReason: "cache-miss",
         ticker,
+        marketData,
       },
     };
   }
@@ -63,6 +69,9 @@ export async function generateReportPayload(ticker: string): Promise<GeneratedRe
     prompt: [
       `Generate a Metric Finance equity research report for ticker ${ticker}.`,
       `Use analyzedAt exactly as: ${analyzedAt}.`,
+      marketData
+        ? `Use this market data as the factual source. Do not contradict it: ${JSON.stringify(marketData)}`
+        : "No market data provider response is available. Use N/A for unavailable market fields.",
       "The report must be useful for a mobile UI and must fit the provided schema.",
       "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
       "Use four peer labels. The first peer must be 'Target'.",
@@ -72,21 +81,59 @@ export async function generateReportPayload(ticker: string): Promise<GeneratedRe
   });
 
   return {
-    payload: {
-      ...object,
-      ticker,
-      analyzedAt,
-      metrics: object.metrics.map((metric) => [
-        metric.label,
-        metric.value,
-        metric.yoy,
-        metric.median,
-      ]),
-    },
+    payload: applyMarketData(
+      {
+        ...object,
+        ticker,
+        analyzedAt,
+        metrics: object.metrics.map((metric) => [
+          metric.label,
+          metric.value,
+          metric.yoy,
+          metric.median,
+        ]),
+      },
+      marketData,
+    ),
     sourceData: {
       provider: "gemini",
       generatedReason: "cache-miss",
       ticker,
+      marketData,
     },
   };
+}
+
+function applyMarketData(report: ReportPayload, marketData: MarketSnapshot | undefined): ReportPayload {
+  if (!marketData) {
+    return report;
+  }
+
+  return {
+    ...report,
+    companyName: marketData.companyName,
+    price: formatPrice(marketData.price),
+    dayChange: formatPercent(marketData.dayChangePercent),
+    peers: marketData.peers.length === 4 ? marketData.peers : report.peers,
+  };
+}
+
+function formatPrice(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  return `₹${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(value)}`;
+}
+
+function formatPercent(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(2)}%`;
 }
