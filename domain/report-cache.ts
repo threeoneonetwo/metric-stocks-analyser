@@ -121,6 +121,10 @@ function isUsableStoredReport(report: {
     return false;
   }
 
+  if (!report.sourceData.marketData) {
+    return false;
+  }
+
   if (report.sourceData.provider === "market-data") {
     return Date.now() - report.generatedAt.getTime() < MARKET_DATA_FALLBACK_TTL_MS;
   }

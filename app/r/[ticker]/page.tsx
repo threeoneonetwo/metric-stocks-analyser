@@ -3,6 +3,7 @@ import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-rea
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { getReportViewForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
+import { getMarketDataService } from "@/services/marketData";
 import { notFound } from "next/navigation";
 
 type ReportPageProps = {
@@ -18,7 +19,14 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
   const reportView = await getReportViewForTicker(resolved.data.ticker);
   const report = reportView.payload;
-  const marketData = reportView.sourceData?.marketData;
+  const marketData =
+    reportView.sourceData?.marketData ?? (await getFreshMarketData(report.ticker, resolved.data.symbol));
+  const displayPrice =
+    marketData?.price !== null && marketData?.price !== undefined ? formatPrice(marketData.price) : report.price;
+  const displayDayChange =
+    marketData?.dayChangePercent !== null && marketData?.dayChangePercent !== undefined
+      ? formatPercent(marketData.dayChangePercent)
+      : report.dayChange;
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -34,8 +42,8 @@ export default async function ReportPage({ params }: ReportPageProps) {
             </p>
           </div>
           <div className="text-right font-mono">
-            <p className="text-2xl font-bold text-metric-green">{report.price}</p>
-            <p className="text-xs font-bold text-metric-green">{report.dayChange}</p>
+            <p className="text-2xl font-bold text-metric-green">{displayPrice}</p>
+            <p className="text-xs font-bold text-metric-green">{displayDayChange}</p>
           </div>
         </div>
       </div>
@@ -63,8 +71,8 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </h2>
           <div className="grid grid-cols-2 gap-2">
             {[
-              ["Price", report.price],
-              ["Day Change", report.dayChange],
+              ["Price", displayPrice],
+              ["Day Change", displayDayChange],
               ["Day High", formatPrice(marketData?.dayHigh ?? null)],
               ["Day Low", formatPrice(marketData?.dayLow ?? null)],
               ["Volume", formatNumber(marketData?.volume ?? null)],
@@ -221,6 +229,27 @@ export default async function ReportPage({ params }: ReportPageProps) {
   );
 }
 
+async function getFreshMarketData(ticker: string, symbol: string) {
+  const service = getMarketDataService();
+  const result = await service.getSnapshot(ticker);
+  if (result.ok && result.data.source !== "mock") {
+    return result.data;
+  }
+
+  const symbolTicker = symbol.replace(/\.(NS|BO)$/i, "");
+  if (symbolTicker !== ticker) {
+    const symbolResult = await service.getSnapshot(symbolTicker);
+    if (symbolResult.ok && symbolResult.data.source !== "mock") {
+      return {
+        ...symbolResult.data,
+        ticker,
+      };
+    }
+  }
+
+  return undefined;
+}
+
 function formatPrice(value: number | null) {
   if (value === null) {
     return "N/A";
@@ -230,6 +259,15 @@ function formatPrice(value: number | null) {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   }).format(value)}`;
+}
+
+function formatPercent(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(2)}%`;
 }
 
 function formatLargeInr(value: number | null) {

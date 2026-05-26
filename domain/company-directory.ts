@@ -3,6 +3,7 @@ import { normalizeTicker } from "@/lib/utils";
 
 type CompanyAlias = {
   ticker: string;
+  symbol?: string;
   companyName: string;
   aliases: string[];
   sector?: string;
@@ -89,6 +90,7 @@ const companies: CompanyAlias[] = [
   },
   {
     ticker: "TATAMOTORS",
+    symbol: "TMCV.NS",
     companyName: "Tata Motors Limited",
     aliases: ["tata motors", "tata motor", "tata motors limited", "tatamotors"],
     sector: "Consumer Cyclical",
@@ -170,7 +172,7 @@ export function resolveKnownCompany(query: string): MarketSymbol | null {
 function toMarketSymbol(company: CompanyAlias): MarketSymbol {
   return {
     ticker: normalizeTicker(company.ticker),
-    symbol: `${normalizeTicker(company.ticker)}.NS`,
+    symbol: company.symbol ?? `${normalizeTicker(company.ticker)}.NS`,
     companyName: company.companyName,
     exchange: "NSE",
     sector: company.sector ?? null,
