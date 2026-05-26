@@ -19,7 +19,8 @@ export default function Home() {
               fontWeight: 500,
             }}
           >
-            Analyse Indian stocks in seconds
+            <span className="block">Analyse Indian stocks</span>
+            <span className="block">in seconds</span>
           </h1>
           <p className="animate-entrance delay-2 max-w-[32rem] text-base leading-6">
             Our advanced agentic engine monitors the Indian equity market to
