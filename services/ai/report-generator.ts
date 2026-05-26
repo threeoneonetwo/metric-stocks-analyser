@@ -4,12 +4,12 @@ import { z } from "zod";
 import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { getMockReport } from "@/domain/mock-report";
 
-const reportMetricSchema = z.tuple([
-  z.string().min(1),
-  z.string().min(1),
-  z.string().min(1),
-  z.string().min(1),
-]);
+const generatedMetricSchema = z.object({
+  label: z.string().min(1),
+  value: z.string().min(1),
+  yoy: z.string().min(1),
+  median: z.string().min(1),
+});
 
 const reportPayloadSchema = z.object({
   ticker: z.string().min(1).max(20),
@@ -22,7 +22,7 @@ const reportPayloadSchema = z.object({
   confidence: z.string().min(1),
   overview: z.string().min(120),
   summary: z.string().min(160),
-  metrics: z.array(reportMetricSchema).length(6),
+  metrics: z.array(generatedMetricSchema).length(6),
   peers: z.array(z.string().min(1)).length(4),
 });
 
@@ -64,7 +64,7 @@ export async function generateReportPayload(ticker: string): Promise<GeneratedRe
       `Generate a Metric Finance equity research report for ticker ${ticker}.`,
       `Use analyzedAt exactly as: ${analyzedAt}.`,
       "The report must be useful for a mobile UI and must fit the provided schema.",
-      "Use six financial metric rows. Each metric row must be [label, value, yoy, median].",
+      "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
       "Use four peer labels. The first peer must be 'Target'.",
       "The executive summary should cover business quality, valuation context, contrarian signal, sentiment, and risks.",
       "Keep wording direct and avoid promises, ratings, or buy/sell recommendations.",
@@ -76,6 +76,12 @@ export async function generateReportPayload(ticker: string): Promise<GeneratedRe
       ...object,
       ticker,
       analyzedAt,
+      metrics: object.metrics.map((metric) => [
+        metric.label,
+        metric.value,
+        metric.yoy,
+        metric.median,
+      ]),
     },
     sourceData: {
       provider: "gemini",
