@@ -17,7 +17,7 @@ export type MarketSnapshot = {
   fiftyTwoWeekHigh: number | null;
   fiftyTwoWeekLow: number | null;
   asOf: string | null;
-  source: "openalgo" | "mock";
+  source: "openalgo" | "yahoo" | "mock";
   sourceUrl: string | null;
   peers: string[];
   metrics: Array<{

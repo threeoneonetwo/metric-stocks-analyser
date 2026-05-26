@@ -1,0 +1,285 @@
+import type { Result } from "@/services/result";
+import type { MarketDataService, MarketSnapshot } from "./types";
+
+type YahooSearchResponse = {
+  quotes?: Array<{
+    symbol?: string;
+    quoteType?: string;
+    longname?: string;
+    shortname?: string;
+    exchange?: string;
+    exchDisp?: string;
+    sector?: string;
+    sectorDisp?: string;
+    industry?: string;
+    industryDisp?: string;
+  }>;
+};
+
+type YahooChartResponse = {
+  chart?: {
+    result?: Array<{
+      meta?: {
+        currency?: string;
+        symbol?: string;
+        exchangeName?: string;
+        fullExchangeName?: string;
+        regularMarketTime?: number;
+        regularMarketPrice?: number;
+        regularMarketDayHigh?: number;
+        regularMarketDayLow?: number;
+        regularMarketVolume?: number;
+        fiftyTwoWeekHigh?: number;
+        fiftyTwoWeekLow?: number;
+        chartPreviousClose?: number;
+        longName?: string;
+        shortName?: string;
+      };
+      indicators?: {
+        quote?: Array<{
+          open?: Array<number | null>;
+          high?: Array<number | null>;
+          low?: Array<number | null>;
+          close?: Array<number | null>;
+          volume?: Array<number | null>;
+        }>;
+      };
+    }>;
+    error?: {
+      code?: string;
+      description?: string;
+    } | null;
+  };
+};
+
+type ResolvedYahooSymbol = {
+  symbol: string;
+  companyName: string;
+  exchange: "NSE" | "BSE";
+  sector: string | null;
+  industry: string | null;
+};
+
+const YAHOO_BASE_URL = "https://query2.finance.yahoo.com";
+
+export const yahooMarketData: MarketDataService = {
+  async getSnapshot(ticker) {
+    const resolved = await resolveYahooSymbol(ticker);
+    if (!resolved.ok) {
+      return resolved;
+    }
+
+    const chart = await getYahooChart(resolved.data.symbol);
+    if (!chart.ok) {
+      return chart;
+    }
+
+    const meta = chart.data.chart?.result?.[0]?.meta;
+    const quote = chart.data.chart?.result?.[0]?.indicators?.quote?.[0];
+    if (!meta) {
+      return {
+        ok: false,
+        code: "UPSTREAM",
+        error: `Yahoo Finance did not return chart metadata for ${resolved.data.symbol}.`,
+      };
+    }
+
+    const price = numberOrNull(meta.regularMarketPrice ?? lastNumber(quote?.close));
+    const previousClose = numberOrNull(meta.chartPreviousClose);
+    const dayChangePercent =
+      price !== null && previousClose !== null && previousClose !== 0
+        ? ((price - previousClose) / previousClose) * 100
+        : null;
+
+    return {
+      ok: true,
+      data: {
+        ticker,
+        symbol: resolved.data.symbol,
+        companyName: meta.longName ?? meta.shortName ?? resolved.data.companyName,
+        exchange: resolved.data.exchange,
+        currency: meta.currency ?? "INR",
+        price,
+        dayChangePercent,
+        sector: resolved.data.sector,
+        industry: resolved.data.industry,
+        marketCap: null,
+        volume: numberOrNull(meta.regularMarketVolume ?? lastNumber(quote?.volume)),
+        dayHigh: numberOrNull(meta.regularMarketDayHigh ?? lastNumber(quote?.high)),
+        dayLow: numberOrNull(meta.regularMarketDayLow ?? lastNumber(quote?.low)),
+        fiftyTwoWeekHigh: numberOrNull(meta.fiftyTwoWeekHigh),
+        fiftyTwoWeekLow: numberOrNull(meta.fiftyTwoWeekLow),
+        asOf: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
+        source: "yahoo",
+        sourceUrl: `https://finance.yahoo.com/quote/${encodeURIComponent(resolved.data.symbol)}`,
+        peers: ["Target", "NIFTY 50", "Sector Median", "Peer Median"],
+        metrics: buildMetrics({
+          open: lastNumber(quote?.open),
+          high: meta.regularMarketDayHigh ?? lastNumber(quote?.high),
+          low: meta.regularMarketDayLow ?? lastNumber(quote?.low),
+          previousClose,
+          volume: meta.regularMarketVolume ?? lastNumber(quote?.volume),
+          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh,
+          fiftyTwoWeekLow: meta.fiftyTwoWeekLow,
+        }),
+      },
+    };
+  },
+};
+
+async function resolveYahooSymbol(ticker: string): Promise<Result<ResolvedYahooSymbol>> {
+  const requestedExchange = process.env.YAHOO_FINANCE_DEFAULT_EXCHANGE === "BSE" ? "BSE" : "NSE";
+  const requestedSuffix = requestedExchange === "BSE" ? ".BO" : ".NS";
+  const normalizedTicker = ticker.trim().toUpperCase();
+  const candidates = normalizedTicker.endsWith(".NS") || normalizedTicker.endsWith(".BO")
+    ? [normalizedTicker]
+    : [`${normalizedTicker}${requestedSuffix}`, `${normalizedTicker}.NS`, `${normalizedTicker}.BO`];
+
+  const uniqueCandidates = [...new Set(candidates)];
+  for (const candidate of uniqueCandidates) {
+    const search = await getYahooSearch(candidate);
+    if (!search.ok) {
+      continue;
+    }
+
+    const match = search.data.quotes?.find(
+      (quote) => quote.quoteType === "EQUITY" && quote.symbol?.toUpperCase() === candidate,
+    );
+
+    if (match?.symbol) {
+      return {
+        ok: true,
+        data: {
+          symbol: match.symbol,
+          companyName: match.longname ?? match.shortname ?? normalizedTicker,
+          exchange: match.symbol.endsWith(".BO") ? "BSE" : "NSE",
+          sector: match.sectorDisp ?? match.sector ?? null,
+          industry: match.industryDisp ?? match.industry ?? null,
+        },
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    code: "NOT_FOUND",
+    error: `Yahoo Finance could not resolve ${ticker} on NSE/BSE.`,
+  };
+}
+
+async function getYahooSearch(query: string): Promise<Result<YahooSearchResponse>> {
+  return getYahooJson<YahooSearchResponse>(
+    `${YAHOO_BASE_URL}/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0`,
+    "Yahoo Finance search request failed.",
+  );
+}
+
+async function getYahooChart(symbol: string): Promise<Result<YahooChartResponse>> {
+  const result = await getYahooJson<YahooChartResponse>(
+    `${YAHOO_BASE_URL}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+    "Yahoo Finance chart request failed.",
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const error = result.data.chart?.error;
+  if (error) {
+    return {
+      ok: false,
+      code: "UPSTREAM",
+      error: error.description ?? error.code ?? "Yahoo Finance chart returned an error.",
+    };
+  }
+
+  return result;
+}
+
+async function getYahooJson<T>(url: string, fallbackError: string): Promise<Result<T>> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "MetricFinance/0.1",
+      },
+      cache: "no-store",
+    });
+    const payload = (await response.json()) as T;
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        code: response.status === 404 ? "NOT_FOUND" : "UPSTREAM",
+        error: fallbackError,
+      };
+    }
+
+    return { ok: true, data: payload };
+  } catch (error) {
+    return {
+      ok: false,
+      code: "UPSTREAM",
+      error: error instanceof Error ? error.message : fallbackError,
+    };
+  }
+}
+
+function buildMetrics(input: {
+  open?: number | null;
+  high?: number | null;
+  low?: number | null;
+  previousClose?: number | null;
+  volume?: number | null;
+  fiftyTwoWeekHigh?: number | null;
+  fiftyTwoWeekLow?: number | null;
+}): MarketSnapshot["metrics"] {
+  return [
+    ["Open", input.open],
+    ["High", input.high],
+    ["Low", input.low],
+    ["Prev Close", input.previousClose],
+    ["Volume", input.volume],
+    ["52W High", input.fiftyTwoWeekHigh],
+    ["52W Low", input.fiftyTwoWeekLow],
+  ]
+    .map(([label, value]) => ({
+      label: label as string,
+      value: formatMetricValue(label as string, numberOrNull(value as number | null | undefined)),
+    }))
+    .filter((metric) => metric.value !== "N/A");
+}
+
+function formatMetricValue(label: string, value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  if (label === "Volume") {
+    return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value);
+  }
+
+  return `₹${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(value)}`;
+}
+
+function lastNumber(values: Array<number | null> | undefined) {
+  if (!values) {
+    return null;
+  }
+
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    const value = numberOrNull(values[index]);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function numberOrNull(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}

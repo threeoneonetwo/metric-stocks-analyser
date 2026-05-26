@@ -63,8 +63,22 @@ payload. Saved reports are reused for 24 hours unless a request includes
 
 ## Market Data
 
-The market-data layer supports OpenAlgo. OpenAlgo is self-hosted, so configure
-your own instance and API key:
+The market-data layer supports Yahoo Finance for temporary MVP data and
+OpenAlgo for broker-backed quotes.
+
+Yahoo Finance does not require an API key:
+
+```bash
+MARKET_DATA_PROVIDER=yahoo
+YAHOO_FINANCE_DEFAULT_EXCHANGE=NSE
+```
+
+The Yahoo adapter uses public search and chart endpoints. It can ground reports
+with company name, exchange, last traded price, day change, OHLC, volume,
+52-week range, sector, industry, and timestamp. Because Yahoo Finance is not a
+licensed production API for this app, treat it as a short-term bridge.
+
+OpenAlgo is self-hosted, so configure your own instance and API key:
 
 ```bash
 MARKET_DATA_PROVIDER=openalgo
