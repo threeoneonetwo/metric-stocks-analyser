@@ -14,7 +14,10 @@ export default function Home() {
           </div>
           <h1
             className="animate-entrance delay-1 text-5xl font-black uppercase leading-[0.95] text-black"
-            style={{ fontFamily: '"Arial Black", Arial, Helvetica, sans-serif' }}
+            style={{
+              fontFamily: '"Arial Black", Arial, Helvetica, sans-serif',
+              fontWeight: 900,
+            }}
           >
             Analyse Indian stocks in seconds
           </h1>
