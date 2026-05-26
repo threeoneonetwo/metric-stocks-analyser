@@ -59,15 +59,15 @@ export default function Home() {
             </div>
           </div>
           <div className="relative border-4 border-black bg-black p-6 text-white neo-shadow">
-            <div className="absolute right-0 top-0 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-yellow" />
-            <h2 className="mb-4 font-mono text-xs font-bold uppercase tracking-[0.1em] text-metric-yellow">
+            <div className="absolute right-0 top-0 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-finance-accent" />
+            <h2 className="mb-4 font-mono text-xs font-bold uppercase tracking-[0.1em] text-metric-finance-accent">
               Realtime_vol
             </h2>
             <div className="flex h-32 items-end gap-1">
               {[40, 70, 50, 90, 60].map((height, index) => (
                 <div
                   key={index}
-                  className="w-full bg-metric-green-bright transition-all duration-500 hover:h-[95%]"
+                  className="w-full bg-metric-finance-accent transition-all duration-500 hover:h-[95%]"
                   style={{ height: `${height}%` }}
                 />
               ))}

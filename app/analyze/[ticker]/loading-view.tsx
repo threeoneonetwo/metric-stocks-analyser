@@ -66,7 +66,7 @@ export function LoadingView({ ticker }: LoadingViewProps) {
       </div>
 
       <div className="surface relative mb-10 flex min-h-40 items-center justify-center p-6 text-center">
-        <div className="absolute -right-1 -top-1 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-blue" />
+        <div className="absolute -right-1 -top-1 h-8 w-8 border-b-4 border-l-4 border-black bg-metric-finance-accent" />
         <AnimatePresence mode="wait">
           <motion.p
             key={factIndex}

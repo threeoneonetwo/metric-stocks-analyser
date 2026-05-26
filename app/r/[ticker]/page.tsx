@@ -68,7 +68,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         <section className="grid overflow-hidden border-4 border-black neo-shadow">
-          <div className="flex items-center justify-center border-b-4 border-black bg-metric-green-bright p-6">
+          <div className="flex items-center justify-center border-b-4 border-black bg-metric-finance-accent p-6">
             <h2 className="text-center font-mono text-3xl font-bold uppercase leading-none">
               {report.verdict}
             </h2>
