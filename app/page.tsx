@@ -26,7 +26,7 @@ export default function Home() {
           </p>
         </div>
 
-        <section className="flex flex-col gap-4">
+        <section id="ticker-search" className="scroll-mt-20 flex flex-col gap-4">
           <div className="animate-entrance delay-3">
             <TickerSearch />
           </div>
@@ -106,6 +106,23 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="surface flex flex-col items-start gap-4 p-6">
+          <div>
+            <h2 className="text-3xl font-extrabold uppercase leading-none">
+              Ready to analyse?
+            </h2>
+            <p className="mt-2 text-sm font-medium uppercase tracking-[0.04em] text-metric-muted">
+              Jump back to the ticker search.
+            </p>
+          </div>
+          <Link
+            href="#ticker-search"
+            className="neo-press inline-flex w-full justify-center border-4 border-black bg-black px-8 py-4 text-sm font-extrabold uppercase tracking-[0.05em] text-white neo-shadow hover:bg-metric-green hover:text-white"
+          >
+            Analyze
+          </Link>
         </section>
       </section>
       <FooterBar />
