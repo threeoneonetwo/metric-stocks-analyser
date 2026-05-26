@@ -14,12 +14,13 @@ export default async function AnalyzePage({ params, searchParams }: AnalyzePageP
   const { refresh } = await searchParams;
   const resolved = await resolveTickerQuery(decodeURIComponent(ticker));
   const normalizedTicker = resolved.ok ? resolved.data.ticker : normalizeTicker(ticker);
+  const displayName = resolved.ok ? resolved.data.companyName : normalizedTicker;
   await ensureReportForTicker(normalizedTicker, { refresh: refresh === "1" });
 
   return (
     <main className="min-h-screen pb-14">
       <TopBar />
-      <LoadingView ticker={normalizedTicker} />
+      <LoadingView ticker={normalizedTicker} companyName={displayName} />
       <FooterBar />
     </main>
   );

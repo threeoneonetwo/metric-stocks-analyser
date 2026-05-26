@@ -8,9 +8,10 @@ import facts from "@/data/facts.json";
 
 type LoadingViewProps = {
   ticker: string;
+  companyName: string;
 };
 
-export function LoadingView({ ticker }: LoadingViewProps) {
+export function LoadingView({ ticker, companyName }: LoadingViewProps) {
   const router = useRouter();
   const [factIndex, setFactIndex] = useState(0);
   const [progress, setProgress] = useState(8);
@@ -40,8 +41,8 @@ export function LoadingView({ ticker }: LoadingViewProps) {
         <div className="mb-4 inline-block border-2 border-black bg-black px-6 py-2 font-mono text-sm font-bold uppercase tracking-[0.05em] text-metric-finance-accent neo-shadow">
           Ticker: {ticker}
         </div>
-        <h1 className="font-serif text-5xl font-black uppercase leading-[0.95] tracking-[-0.04em]">
-          {ticker} Industries Ltd
+        <h1 className="font-serif text-5xl font-black uppercase leading-[0.95]">
+          {companyName}
         </h1>
       </div>
 
