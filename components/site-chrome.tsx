@@ -9,6 +9,11 @@ type TopBarProps = {
   ticker?: string;
 };
 
+const menuLinks = [
+  ["About", "https://www.notion.so/"],
+  ["Contact", "https://www.notion.so/"],
+];
+
 export function TopBar({ reportActions = false, ticker }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -58,18 +63,15 @@ export function TopBar({ reportActions = false, ticker }: TopBarProps) {
                 aria-label="Main menu"
                 className="absolute right-0 top-12 w-44 border-4 border-black bg-white p-2 neo-shadow"
               >
-                {[
-                  ["About", "/about"],
-                  ["Contact", "/contact"],
-                ].map(([label, href]) => (
-                  <Link
+                {menuLinks.map(([label, href]) => (
+                  <a
                     key={href}
                     href={href}
                     className="block border-2 border-black px-4 py-3 text-sm font-extrabold uppercase tracking-[0.05em] text-black hover:bg-metric-green-bright"
                     onClick={() => setMenuOpen(false)}
                   >
                     {label}
-                  </Link>
+                  </a>
                 ))}
               </nav>
             ) : null}
