@@ -108,14 +108,11 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="surface flex flex-col items-start gap-4 p-6">
+        <section className="surface flex flex-col items-center gap-4 p-6 text-center">
           <div>
             <h2 className="text-3xl font-extrabold uppercase leading-none">
               Ready to analyse?
             </h2>
-            <p className="mt-2 text-sm font-medium uppercase tracking-[0.04em] text-metric-muted">
-              Jump back to the ticker search.
-            </p>
           </div>
           <Link
             href="#ticker-search"
