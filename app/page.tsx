@@ -9,7 +9,7 @@ export default function Home() {
       <TopBar />
       <section className="mx-auto flex w-full max-w-[42rem] flex-1 flex-col gap-10 px-4 py-10 sm:px-6">
         <div className="flex flex-col items-center gap-6 text-center">
-          <div className="animate-entrance bg-black px-2 py-1 font-mono text-xs font-medium uppercase tracking-[0.1em] text-metric-finance-accent neo-shadow">
+          <div className="animate-entrance bg-black px-2 py-1 font-mono text-xs font-medium uppercase tracking-[0.1em] text-white neo-shadow">
             System status: operational
           </div>
           <h1
