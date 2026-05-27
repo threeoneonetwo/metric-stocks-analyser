@@ -11,7 +11,6 @@ type TopBarProps = {
 
 const menuLinks = [
   ["About", "https://metricfinance.notion.site/Metric-Finance-36dbc65fd7b380799a64ec4979735b20?source=copy_link"],
-  ["Contact", "https://www.notion.so/"],
 ];
 
 export function TopBar({ reportActions = false, ticker }: TopBarProps) {
