@@ -1,6 +1,6 @@
 import { getStoredReport, logGenerationJob, saveReport } from "@/db/reports";
 import type { ReportPayload, ReportSourceData } from "@/db/types";
-import { generateReportPayload } from "@/services/ai/report-generator";
+import { generateReportPayload, REPORT_PROMPT_VERSION } from "@/services/ai/report-generator";
 import { getMarketDataService } from "@/services/marketData";
 import type { MarketSnapshot } from "@/services/marketData/types";
 import { getMockReport } from "./mock-report";
@@ -125,6 +125,10 @@ function isUsableStoredReport(report: {
     return false;
   }
 
+  if (report.sourceData.provider === "gemini" && report.sourceData.promptVersion !== REPORT_PROMPT_VERSION) {
+    return false;
+  }
+
   if (report.sourceData.provider === "market-data") {
     return Date.now() - report.generatedAt.getTime() < MARKET_DATA_FALLBACK_TTL_MS;
   }
@@ -167,19 +171,81 @@ function buildMarketDataReport(ticker: string, marketData: MarketSnapshot): Repo
       timeZone: "Asia/Kolkata",
     }).format(new Date()),
     verdict: "Data snapshot",
-    sentiment: "Market data only",
+    sentiment: getFallbackSentiment(marketData),
     confidence: "Market data",
-    overview: [
-      `${marketData.companyName} is listed on ${marketData.exchange} as ${marketData.symbol}.`,
-      marketData.sector ? `Sector: ${marketData.sector}.` : "Sector data is unavailable from the current provider.",
-      marketData.industry ? `Industry: ${marketData.industry}.` : "Industry data is unavailable from the current provider.",
-      `The latest available price is ${formatPrice(marketData.price)} with a day change of ${formatPercent(marketData.dayChangePercent)}.`,
-    ].join(" "),
-    summary:
-      "This report is grounded in the latest Yahoo Finance market snapshot because AI report generation is temporarily unavailable. It uses real quote, volume, range, sector, and industry fields where Yahoo provides them. Full company fundamentals, peer medians, and news sentiment still require a licensed fundamentals/news provider.",
+    overview: buildFallbackOverview(marketData),
+    summary: buildFallbackSummary(marketData),
     metrics: paddedMetrics,
-    peers: marketData.peers.length === 3 ? marketData.peers : ["Target", "NIFTY 50", "Sector Median"],
+    peers: marketData.peers.length === 3 ? marketData.peers : [ticker, "NIFTY 50", "Sector Median"],
   };
+}
+
+function buildFallbackOverview(marketData: MarketSnapshot) {
+  const sectorLine =
+    marketData.sector || marketData.industry
+      ? `${marketData.sector ?? "Sector not classified"} / ${marketData.industry ?? "industry not classified"}`
+      : "sector and industry classification are not available from the current feed";
+
+  return `${marketData.companyName} trades on ${marketData.exchange} under ${marketData.symbol}. The live feed places it in ${sectorLine}, so the immediate read should separate three things: today's price pressure, where the stock sits inside its yearly range, and whether the balance-sheet or valuation fields are complete enough to support a deeper judgment.`;
+}
+
+function buildFallbackSummary(marketData: MarketSnapshot) {
+  const price = formatPrice(marketData.price);
+  const change = formatPercent(marketData.dayChangePercent);
+  const volume = formatNumber(marketData.volume);
+  const range = formatRangePosition(marketData);
+  const marketCap = marketData.marketCap ? `Market cap is ${formatLargeCurrency(marketData.marketCap)},` : "Market cap is unavailable,";
+
+  return `${marketData.companyName} is printing ${price} with a ${change} latest move and ${volume} shares reported in volume. ${marketCap} while the stock is ${range}. That combination gives the page enough to judge momentum and range context, but not enough to underwrite quality on its own; the missing bridge is audited fundamentals, margins, leverage, and peer-normalized valuation. Until that feed is connected, the stronger read comes from watching whether price action is being confirmed by volume and by the top two listed peers.`;
+}
+
+function getFallbackSentiment(marketData: MarketSnapshot) {
+  const change = marketData.dayChangePercent;
+  if (change === null || change === undefined) {
+    return "Incomplete";
+  }
+
+  if (change >= 1) {
+    return "Constructive";
+  }
+
+  if (change <= -1) {
+    return "Pressured";
+  }
+
+  return "Neutral";
+}
+
+function formatRangePosition(marketData: MarketSnapshot) {
+  const price = marketData.price;
+  const high = marketData.fiftyTwoWeekHigh;
+  const low = marketData.fiftyTwoWeekLow;
+  if (price === null || high === null || low === null || high === low) {
+    return "missing 52-week range context";
+  }
+
+  const position = Math.round(((price - low) / (high - low)) * 100);
+  if (position >= 75) {
+    return `near the upper end of its 52-week band at roughly ${position}% of the range`;
+  }
+
+  if (position <= 25) {
+    return `near the lower end of its 52-week band at roughly ${position}% of the range`;
+  }
+
+  return `around the middle of its 52-week band at roughly ${position}% of the range`;
+}
+
+function formatLargeCurrency(value: number) {
+  if (value >= 1_00_000_00_00_000) {
+    return `₹${(value / 1_00_000_00_00_000).toFixed(2)}T`;
+  }
+
+  if (value >= 1_00_00_000) {
+    return `₹${(value / 1_00_00_000).toFixed(2)}Cr`;
+  }
+
+  return formatPrice(value);
 }
 
 function formatPrice(value: number | null) {
@@ -200,4 +266,14 @@ function formatPercent(value: number | null) {
 
   const prefix = value > 0 ? "+" : "";
   return `${prefix}${value.toFixed(2)}%`;
+}
+
+function formatNumber(value: number | null) {
+  if (value === null) {
+    return "N/A";
+  }
+
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(value);
 }

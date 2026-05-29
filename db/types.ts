@@ -22,6 +22,7 @@ export type ReportSourceData = {
   generatedReason: "cache-miss" | "refresh" | "seed";
   ticker: string;
   aiModel?: string;
+  promptVersion?: number;
   marketData?: MarketSnapshot;
   marketDataError?: string;
 };

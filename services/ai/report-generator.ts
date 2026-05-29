@@ -5,6 +5,8 @@ import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { getMockReport } from "@/domain/mock-report";
 import type { MarketSnapshot } from "@/services/marketData/types";
 
+export const REPORT_PROMPT_VERSION = 2;
+
 const generatedMetricSchema = z.object({
   label: z.string().min(1),
   value: z.string().min(1),
@@ -60,16 +62,19 @@ export async function generateReportPayload(
   }).format(new Date());
 
   const prompt = [
-    `Generate a Metric Finance pre-buy intelligence brief for ticker ${ticker}.`,
+    `Generate a Metric Finance equity intelligence brief for ticker ${ticker}.`,
     `Use analyzedAt exactly as: ${analyzedAt}.`,
     marketData
       ? `Use this market data as the factual source. Do not contradict it: ${JSON.stringify(marketData)}`
       : "No market data provider response is available. Use N/A for unavailable market fields.",
     "The report must be useful for a mobile UI and must fit the provided schema.",
-    "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
-    "Use exactly three peer labels: 'Target' followed by the top two direct listed competitors from the market data peers field.",
-    "The executive summary should blend daily trader context and direct equity investor context: market setup, price behaviour, business quality, valuation context, peer lens, recent signals, and risks.",
-    "Avoid buy, sell, hold, accumulate, avoid, target price, and stop loss language. Explain what the data means directly without adding disclaimer-style announcements.",
+    "Write like an IIM Ahmedabad-trained equity analyst writing for a smart investor before market action: direct, evidence-led, commercially literate, and calm.",
+    "Do not sound like a template. Vary sentence structure. Do not repeat phrases such as 'the next question', 'this means', 'market setup', or 'before buying' across fields.",
+    "Make the overview a business-quality read: what the company does, where the operating leverage or fragility is likely to sit, and what the current market data can and cannot confirm.",
+    "Make the summary a single polished analyst paragraph that synthesizes price action, volume, 52-week position, valuation/quality placeholders, peer context, and news/technical signals into a coherent view.",
+    "Use six metric rows. Prefer valuation, profitability, growth, balance-sheet/risk, cash generation, and shareholder/ownership fields. Each row must include label, value, yoy, and median. Use N/A only where the supplied data cannot support a number.",
+    "Use exactly three peer labels: the main ticker followed by the top two direct listed competitors from the market data peers field.",
+    "Avoid buy, sell, hold, accumulate, avoid, target price, stop loss, multibagger, guaranteed, and recommendation language. Do not add disclaimers. Explain implications, trade-offs, and missing evidence.",
   ].join("\n");
   const { object, modelId } = await generateWithModelFallback(prompt);
 
@@ -93,6 +98,7 @@ export async function generateReportPayload(
       generatedReason: "cache-miss",
       ticker,
       aiModel: modelId,
+      promptVersion: REPORT_PROMPT_VERSION,
       marketData,
     },
   };
@@ -110,7 +116,7 @@ async function generateWithModelFallback(prompt: string) {
         schemaName: "MetricFinanceEquityReport",
         temperature: 0.35,
         system:
-          "You write concise pre-buy intelligence for Indian NSE and BSE listed stocks. Return only grounded, cautious analysis. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. Avoid buy, sell, hold, target price, stop loss, and recommendation language. Explain what the data means directly without repeating disclaimer-style wording.",
+          "You are a senior Indian equities analyst. Write concise, high-signal research prose for NSE and BSE listed companies. Sound like a trained finance professional, not a chatbot or marketing page. Anchor every claim to supplied data, identify trade-offs, and avoid generic filler. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. Avoid buy, sell, hold, target price, stop loss, and recommendation language.",
         prompt,
       });
 

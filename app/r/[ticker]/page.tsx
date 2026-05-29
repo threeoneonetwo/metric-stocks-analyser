@@ -308,48 +308,86 @@ function buildMetricBrief(input: {
   reportSummary: string;
 }) {
   const marketData = input.marketData;
-  const dayRange =
-    marketData?.dayLow !== null &&
-    marketData?.dayLow !== undefined &&
-    marketData?.dayHigh !== null &&
-    marketData?.dayHigh !== undefined
-      ? `${formatPrice(marketData.dayLow)}-${formatPrice(marketData.dayHigh)}`
-      : "N/A";
-  const yearlyRange =
-    marketData?.fiftyTwoWeekLow !== null &&
-    marketData?.fiftyTwoWeekLow !== undefined &&
-    marketData?.fiftyTwoWeekHigh !== null &&
-    marketData?.fiftyTwoWeekHigh !== undefined
-      ? `${formatPrice(marketData.fiftyTwoWeekLow)}-${formatPrice(marketData.fiftyTwoWeekHigh)}`
-      : "N/A";
-  const peerRead = input.peerLabels
+  const price = formatPrice(marketData?.price ?? null);
+  const change = formatPercent(marketData?.dayChangePercent ?? null);
+  const volume = formatNumber(marketData?.volume ?? null);
+  const peerMoves = input.peerLabels
     .map((peer, index) => {
       const snapshot = input.peerSnapshots[index];
       return `${peer}: ${formatPercent(snapshot?.dayChangePercent ?? null)}`;
     })
+    .filter((move) => !move.endsWith("N/A"))
     .join(", ");
-  const metricRead = input.metrics
-    .slice(0, 3)
-    .map(([label, value, yoy, median]) => `${label} ${value} (${yoy} YoY, median ${median})`)
-    .join("; ");
-  const technicalRead = input.signals?.technicals.length
-    ? input.signals.technicals.map((signal) => `${signal.label} ${signal.value}: ${signal.meaning}`).join(" ")
-    : "Tradient technical signals are unavailable for this snapshot.";
-  const newsRead = input.signals?.news.length
-    ? input.signals.news.map((item) => `${item.title} (${item.sentiment})`).join("; ")
-    : "No ticker-matched Tradient headlines were found in the latest market-news batch.";
+  const valuation = getMetricSignal(input.metrics, /p\/?e|valuation|ev/i);
+  const quality = getMetricSignal(input.metrics, /roe|roce|margin|profit|quality/i);
+  const leverage = getMetricSignal(input.metrics, /debt|d\/?e|risk|coverage/i);
+  const technical = input.signals?.technicals[0];
+  const leadNews = input.signals?.news[0];
 
-  const base = [
-    `${input.companyName} (${input.ticker}) is showing ${formatPrice(marketData?.price ?? null)} with a ${formatPercent(marketData?.dayChangePercent ?? null)} latest day move.`,
-    `Latest setup: day range ${dayRange}, volume ${formatNumber(marketData?.volume ?? null)}, and 52-week range ${yearlyRange}.`,
-    `Market meaning: ${input.marketRead.meaning} ${input.rangeRead.meaning} ${input.volumeRead.meaning}`,
-    `Peer check: ${peerRead || "peer snapshots are unavailable"}. This shows whether today's move is company-specific or moving with close competitors.`,
-    `Business context: sector ${marketData?.sector ?? "N/A"}, industry ${marketData?.industry ?? "N/A"}. Key available metrics: ${metricRead || "N/A"}.`,
-    `Technical layer: ${technicalRead}`,
-    `News layer: ${newsRead}`,
-  ].join(" ");
-  const cleanSummary = input.reportSummary.replace(/\b(buy|sell|hold|accumulate|avoid)\b/gi, "research");
-  return `${base} Brief: ${cleanSummary}`;
+  const setupSentence = `${input.companyName} is trading at ${price}, ${change} on the latest snapshot, with ${volume} shares of reported volume.`;
+  const rangeSentence = input.rangeRead.meaning
+    .replace(/^The current price is /, "It is ")
+    .replace(/^That places /, "Range context: ");
+  const peerSentence = peerMoves
+    ? `Against its nearest listed peers, today's move reads as ${peerMoves}, so the stock is moving with a weak telecom and large-cap tape rather than in isolation.`
+    : "Peer movement is not complete enough yet to separate company-specific price action from a broader sector move.";
+  const fundamentalsSentence = [
+    valuation ? `valuation: ${valuation}` : null,
+    quality ? `quality: ${quality}` : null,
+    leverage ? `risk: ${leverage}` : null,
+  ]
+    .filter(Boolean)
+    .join("; ");
+  const evidenceSentence = fundamentalsSentence
+    ? `The fundamental checkpoint is ${fundamentalsSentence}.`
+    : `The fundamental checkpoint is still thin because the current feed has not supplied valuation, profitability, and balance-sheet depth together.`;
+  const signalSentence = [
+    technical ? `Technical signal: ${technical.label} at ${technical.value}, ${technical.meaning.toLowerCase()}` : null,
+    leadNews ? `Latest news tone: ${leadNews.sentiment.toLowerCase()} from ${leadNews.source} on "${leadNews.title}".` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const analystSentence = buildClosingRead({
+    marketRead: input.marketRead,
+    rangeRead: input.rangeRead,
+    hasFundamentals: Boolean(fundamentalsSentence),
+    hasNews: Boolean(leadNews),
+    hasTechnicals: Boolean(technical),
+  });
+
+  return [setupSentence, rangeSentence, peerSentence, evidenceSentence, signalSentence, analystSentence]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getMetricSignal(metrics: Array<[string, string, string, string]>, pattern: RegExp) {
+  const metric = metrics.find(([label]) => pattern.test(label));
+  if (!metric || metric[1] === "N/A") {
+    return null;
+  }
+
+  const [, value, yoy, median] = metric;
+  const comparison = median && median !== "N/A" ? `versus peer median ${median}` : "with no peer median supplied";
+  const movement = yoy && yoy !== "N/A" ? `, ${yoy} YoY` : "";
+  return `${value}${movement}, ${comparison}`;
+}
+
+function buildClosingRead(input: {
+  marketRead: AnalysisRead;
+  rangeRead: AnalysisRead;
+  hasFundamentals: boolean;
+  hasNews: boolean;
+  hasTechnicals: boolean;
+}) {
+  if (!input.hasFundamentals) {
+    return "The practical read is momentum-first: price, range, peers, technicals, and news can frame the setup, but quality and valuation still need a deeper fundamentals feed before the page can judge durability.";
+  }
+
+  if (input.hasNews && input.hasTechnicals) {
+    return "The useful interpretation is whether the market move, news flow, and technical tape are pointing in the same direction; alignment matters more than any single headline or ratio.";
+  }
+
+  return `${input.marketRead.meaning} ${input.rangeRead.meaning}`;
 }
 
 type AnalysisRead = {
@@ -369,20 +407,20 @@ function getMarketRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   if (change >= 2) {
     return {
       label: "Market Signal: Strong Move",
-      meaning: `The stock is up ${formatPercent(change)} on the latest Yahoo snapshot. That means today has visible positive price pressure, so volume and range position matter before reading too much into the move.`,
+      meaning: `The stock is up ${formatPercent(change)} on the latest snapshot, which points to visible positive price pressure. Volume, range position, and peer movement decide whether that pressure has depth.`,
     };
   }
 
   if (change <= -2) {
     return {
       label: "Market Signal: Weak Move",
-      meaning: `The stock is down ${formatPercent(change)} on the latest Yahoo snapshot. That points to visible selling pressure today, so the next question is whether the move is stock-specific or sector-wide.`,
+      meaning: `The stock is down ${formatPercent(change)} on the latest snapshot, so sellers are controlling the near-term tape. Peer movement and news flow decide whether the pressure is company-specific or sector-wide.`,
     };
   }
 
   return {
     label: "Market Signal: Normal Range",
-    meaning: `The stock is moving ${formatPercent(change)} on the latest Yahoo snapshot, which is a moderate daily move rather than an extreme signal by itself.`,
+    meaning: `The stock is moving ${formatPercent(change)} on the latest snapshot, a moderate daily move that needs confirmation from volume, range position, and peer behaviour.`,
   };
 }
 
@@ -401,20 +439,20 @@ function getRangeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   if (position >= 75) {
     return {
       label: "Range Context: Upper Band",
-      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That means the stock is trading closer to its yearly high than its yearly low, so valuation support matters more.`,
+      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That places it closer to the yearly high, where valuation support and earnings delivery carry more weight.`,
     };
   }
 
   if (position <= 25) {
     return {
       label: "Range Context: Lower Band",
-      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That means the stock is closer to its yearly low, so the important question is whether weakness is temporary or tied to fundamentals.`,
+      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That places it near the lower band, where the distinction between temporary weakness and fundamental stress matters.`,
     };
   }
 
   return {
     label: "Range Context: Middle Band",
-    meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That means the setup is not at an obvious range extreme, so peer movement and business quality become more useful context.`,
+    meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That places it away from obvious range extremes, making peer movement and business quality more useful context.`,
   };
 }
 
@@ -428,7 +466,7 @@ function getVolumeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
 
   return {
     label: "Volume Context: Available",
-    meaning: `Latest reported volume is ${formatNumber(marketData.volume)} shares. Volume helps separate an ordinary price move from a move with broader market participation.`,
+    meaning: `Latest reported volume is ${formatNumber(marketData.volume)} shares, which gives the price move a participation check instead of leaving it as a standalone quote change.`,
   };
 }
 
