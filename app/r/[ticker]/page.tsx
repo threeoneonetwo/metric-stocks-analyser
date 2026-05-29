@@ -5,11 +5,15 @@ import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/compe
 import { getReportViewForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { getMarketDataService } from "@/services/marketData";
+import type { MarketSnapshot } from "@/services/marketData/types";
 import { notFound } from "next/navigation";
 
 type ReportPageProps = {
   params: Promise<{ ticker: string }>;
 };
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ReportPage({ params }: ReportPageProps) {
   const { ticker } = await params;
@@ -18,10 +22,10 @@ export default async function ReportPage({ params }: ReportPageProps) {
     notFound();
   }
 
+  const freshMarketData = await getFreshMarketData(resolved.data.ticker, resolved.data.symbol);
   const reportView = await getReportViewForTicker(resolved.data.ticker);
   const report = reportView.payload;
-  const marketData =
-    reportView.sourceData?.marketData ?? (await getFreshMarketData(report.ticker, resolved.data.symbol));
+  const marketData = freshMarketData ?? reportView.sourceData?.marketData;
   const displayPrice =
     marketData?.price !== null && marketData?.price !== undefined ? formatPrice(marketData.price) : report.price;
   const displayDayChange =
@@ -35,6 +39,10 @@ export default async function ReportPage({ params }: ReportPageProps) {
         industry: marketData?.industry ?? resolved.data.industry,
       })
     : report.peers;
+  const peerSnapshots = await getPeerSnapshots(displayPeers.slice(1));
+  const marketRead = getMarketRead(marketData);
+  const rangeRead = getRangeRead(marketData);
+  const volumeRead = getVolumeRead(marketData);
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -57,11 +65,19 @@ export default async function ReportPage({ params }: ReportPageProps) {
       </div>
 
       <article className="mx-auto flex w-full max-w-[42rem] flex-1 flex-col gap-10 px-4 py-10 sm:px-6">
-        <ReportSection title="Executive Summary" accent>
-          <p className="text-base leading-7">{report.summary}</p>
+        <ReportSection title="Metric Brief" accent>
+          <p className="text-base leading-7">
+            {buildMetricBrief({
+              companyName: report.companyName,
+              marketRead,
+              rangeRead,
+              volumeRead,
+              reportSummary: report.summary,
+            })}
+          </p>
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t-2 border-black/10 pt-4">
             <span className="font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
-              Last analyzed: {report.analyzedAt}
+              Market data refreshed: {formatTimestamp(marketData?.asOf ?? null)}
             </span>
             <Link
               href={`/analyze/${report.ticker}?refresh=1`}
@@ -99,16 +115,16 @@ export default async function ReportPage({ params }: ReportPageProps) {
         <section className="grid overflow-hidden border-4 border-black neo-shadow">
           <div className="flex items-center justify-center border-b-4 border-black bg-metric-finance-accent p-6">
             <h2 className="text-center font-mono text-3xl font-bold uppercase leading-none">
-              {report.verdict}
+              {marketRead.label}
             </h2>
           </div>
           <div className="bg-white p-6">
-            <p className="text-base italic leading-7">{report.summary}</p>
+            <p className="text-base italic leading-7">{marketRead.meaning}</p>
           </div>
         </section>
 
         <section>
-          <SectionHeading title="Company Overview" />
+          <SectionHeading title="Market Setup" />
           <div className="mb-4 grid grid-cols-2 gap-2">
             {[
               ["Sector", marketData?.sector ?? "N/A"],
@@ -135,15 +151,28 @@ export default async function ReportPage({ params }: ReportPageProps) {
             </div>
           </div>
           <div className="border-4 border-black bg-black p-4 text-white neo-shadow">
-            <p className="leading-7">{report.overview}</p>
+            <p className="leading-7">{rangeRead.meaning}</p>
+          </div>
+        </section>
+
+        <section className="surface p-4">
+          <SectionHeading title="Price Behaviour" />
+          <div className="mt-4 grid gap-2">
+            {[
+              ["Daily movement", marketRead.meaning],
+              ["Range context", rangeRead.meaning],
+              ["Volume context", volumeRead.meaning],
+            ].map(([label, copy]) => (
+              <AnalysisCard key={label} label={label} copy={copy} />
+            ))}
           </div>
         </section>
 
         <section>
           <div className="mb-4 flex items-end justify-between gap-4">
-            <SectionHeading title="Financials" />
+            <SectionHeading title="Business Quality" />
             <span className="font-mono text-xs uppercase text-metric-muted">
-              Values in INR CR
+              AI + provider fields
             </span>
           </div>
           <div className="grid gap-2">
@@ -164,17 +193,31 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
           <div className="mt-4 border-2 border-dashed border-black bg-metric-green-bright/25 p-3">
             <p className="text-sm leading-6">
-              <strong>AI INSIGHT:</strong> Operating margin and growth deltas are
-              framed against sector medians to surface what deserves deeper review.
+              <strong>WHAT THIS MEANS:</strong> These fields are meant to explain business strength,
+              valuation context, and balance-sheet quality before someone decides whether to research further.
             </p>
           </div>
         </section>
 
-        <ReportTable peers={displayPeers} />
+        <section className="surface p-4">
+          <SectionHeading title="Valuation Context" />
+          <div className="mt-4 grid gap-2">
+            <AnalysisCard
+              label="Valuation lens"
+              copy="Metric treats valuation as context, not a recommendation. A higher multiple needs stronger growth, margins, and execution to justify it; a lower multiple still needs a check on debt, earnings quality, and sector risk."
+            />
+            <AnalysisCard
+              label="Current limitation"
+              copy="Live valuation ratios and historical averages need a licensed fundamentals feed. Until that is connected, price, range, volume, sector, industry, and AI-generated financial context are shown separately."
+            />
+          </div>
+        </section>
+
+        <ReportTable target={marketData} peers={displayPeers} peerSnapshots={peerSnapshots} />
 
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
-            <SectionHeading title="Sentiment" />
+            <SectionHeading title="Recent Signals" />
             <span className="font-mono text-xs uppercase text-metric-muted">
               Confidence {report.confidence}
             </span>
@@ -196,7 +239,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
               </div>
               <div className="p-2">
                 <p className="font-mono text-xs uppercase text-metric-muted">
-                  Live news headlines are not connected yet.
+                  Live news headlines are not connected yet. The current signal is based on market data and the generated brief.
                 </p>
               </div>
             </div>
@@ -204,12 +247,12 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         <section>
-          <SectionHeading title="Top Risks" />
+          <SectionHeading title="Risk Map" />
           <div className="mt-4 grid gap-4">
             {[
-              [AlertTriangle, "Market data coverage", "Yahoo Finance currently supplies price, volume, sector, industry, and 52-week range. Full fundamentals still need a licensed provider.", "bg-metric-red"],
-              [TrendingDown, "Valuation context", "Ratios and peer medians are AI-generated until a fundamentals feed is connected.", "bg-metric-pink"],
-              [Bolt, "Refresh timing", `Market snapshot timestamp: ${formatTimestamp(marketData?.asOf ?? null)}.`, "bg-metric-green"],
+              [AlertTriangle, "Data coverage", "Yahoo Finance currently supplies price, volume, sector, industry, and range fields. Full fundamentals still need a licensed provider.", "bg-metric-red"],
+              [TrendingDown, "Interpretation risk", "Momentum, valuation, and business quality should be read together. One strong field does not explain the whole stock.", "bg-metric-pink"],
+              [Bolt, "Latency", `This page fetches a fresh market snapshot on every report load. Snapshot timestamp: ${formatTimestamp(marketData?.asOf ?? null)}.`, "bg-metric-green"],
             ].map(([Icon, title, copy, stripe]) => (
               <div key={title as string} className="relative overflow-hidden border-2 border-black bg-white p-4 neo-shadow-sm">
                 <div className={`absolute right-0 top-0 h-full w-2 ${stripe as string}`} />
@@ -225,7 +268,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
         <section className="border-4 border-black bg-black p-10 text-center text-white neo-shadow">
           <h2 className="mb-6 font-serif text-3xl font-bold">
-            Found value in this analysis?
+            Know what the data means before acting.
           </h2>
           <button className="neo-press inline-flex items-center gap-2 border-4 border-black bg-metric-green-bright px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-black neo-shadow">
             <Share2 size={18} /> Share Report
@@ -256,6 +299,110 @@ async function getFreshMarketData(ticker: string, symbol: string) {
   }
 
   return undefined;
+}
+
+async function getPeerSnapshots(peers: string[]) {
+  const service = getMarketDataService();
+  const snapshots = await Promise.all(
+    peers.map(async (peer) => {
+      const result = await service.getSnapshot(peer);
+      return result.ok && result.data.source !== "mock" ? result.data : null;
+    }),
+  );
+
+  return snapshots;
+}
+
+function buildMetricBrief(input: {
+  companyName: string;
+  marketRead: AnalysisRead;
+  rangeRead: AnalysisRead;
+  volumeRead: AnalysisRead;
+  reportSummary: string;
+}) {
+  const base = `${input.companyName} is being shown as a pre-buy intelligence brief, not a stock recommendation. ${input.marketRead.meaning} ${input.rangeRead.meaning} ${input.volumeRead.meaning}`;
+  const cleanSummary = input.reportSummary.replace(/\b(buy|sell|hold|accumulate|avoid)\b/gi, "research");
+  return `${base} The deeper read is: ${cleanSummary}`;
+}
+
+type AnalysisRead = {
+  label: string;
+  meaning: string;
+};
+
+function getMarketRead(marketData: MarketSnapshot | undefined): AnalysisRead {
+  const change = marketData?.dayChangePercent;
+  if (change === null || change === undefined) {
+    return {
+      label: "Market Signal: Incomplete",
+      meaning: "The latest price move is unavailable from the current provider, so the first check is data completeness before interpreting momentum.",
+    };
+  }
+
+  if (change >= 2) {
+    return {
+      label: "Market Signal: Strong Move",
+      meaning: `The stock is up ${formatPercent(change)} on the latest Yahoo snapshot. That means today has visible positive price pressure, so volume and range position matter before reading too much into the move.`,
+    };
+  }
+
+  if (change <= -2) {
+    return {
+      label: "Market Signal: Weak Move",
+      meaning: `The stock is down ${formatPercent(change)} on the latest Yahoo snapshot. That points to visible selling pressure today, so the next question is whether the move is stock-specific or sector-wide.`,
+    };
+  }
+
+  return {
+    label: "Market Signal: Normal Range",
+    meaning: `The stock is moving ${formatPercent(change)} on the latest Yahoo snapshot. That is not enough by itself to define the setup, so range, volume, peers, and fundamentals need to carry the interpretation.`,
+  };
+}
+
+function getRangeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
+  const price = marketData?.price;
+  const high = marketData?.fiftyTwoWeekHigh;
+  const low = marketData?.fiftyTwoWeekLow;
+  if (price === null || price === undefined || high === null || high === undefined || low === null || low === undefined || high === low) {
+    return {
+      label: "Range Context: Unavailable",
+      meaning: "The 52-week range is incomplete, so the page cannot yet explain whether the current price is near the top, middle, or bottom of its recent trading band.",
+    };
+  }
+
+  const position = ((price - low) / (high - low)) * 100;
+  if (position >= 75) {
+    return {
+      label: "Range Context: Upper Band",
+      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That means the stock is trading closer to its yearly high than its yearly low, so valuation support matters more.`,
+    };
+  }
+
+  if (position <= 25) {
+    return {
+      label: "Range Context: Lower Band",
+      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That means the stock is closer to its yearly low, so the important question is whether weakness is temporary or tied to fundamentals.`,
+    };
+  }
+
+  return {
+    label: "Range Context: Middle Band",
+    meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That means the setup is not at an obvious range extreme, so peer movement and business quality become more useful context.`,
+  };
+}
+
+function getVolumeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
+  if (!marketData?.volume) {
+    return {
+      label: "Volume Context: Unavailable",
+      meaning: "Volume is unavailable, so the page cannot yet judge whether today's move has unusually strong participation.",
+    };
+  }
+
+  return {
+    label: "Volume Context: Available",
+    meaning: `Latest reported volume is ${formatNumber(marketData.volume)} shares. Volume helps separate an ordinary price move from a move with broader market participation.`,
+  };
 }
 
 function formatPrice(value: number | null) {
@@ -349,10 +496,38 @@ function ReportSection({
   );
 }
 
-function ReportTable({ peers }: { peers: string[] }) {
+function AnalysisCard({ label, copy }: { label: string; copy: string }) {
+  return (
+    <div className="border-2 border-black bg-white p-4 neo-shadow-sm">
+      <p className="mb-2 font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-muted">
+        {label}
+      </p>
+      <p className="text-sm leading-6">{copy}</p>
+    </div>
+  );
+}
+
+function ReportTable({
+  target,
+  peers,
+  peerSnapshots,
+}: {
+  target: MarketSnapshot | undefined;
+  peers: string[];
+  peerSnapshots: Array<MarketSnapshot | null>;
+}) {
+  const snapshots = [target ?? null, ...peerSnapshots];
+  const rows = [
+    ["Price", (snapshot: MarketSnapshot | null) => formatPrice(snapshot?.price ?? null)],
+    ["Day Change", (snapshot: MarketSnapshot | null) => formatPercent(snapshot?.dayChangePercent ?? null)],
+    ["Volume", (snapshot: MarketSnapshot | null) => formatNumber(snapshot?.volume ?? null)],
+    ["Day High", (snapshot: MarketSnapshot | null) => formatPrice(snapshot?.dayHigh ?? null)],
+    ["Day Low", (snapshot: MarketSnapshot | null) => formatPrice(snapshot?.dayLow ?? null)],
+  ] as const;
+
   return (
     <section>
-      <SectionHeading title="Peer Comparison" />
+      <SectionHeading title="Peer Lens" />
       <div className="mt-4 overflow-x-auto border-4 border-black bg-white neo-shadow">
         <table className="w-full min-w-[640px] border-collapse text-left font-mono text-sm">
           <thead>
@@ -371,7 +546,7 @@ function ReportTable({ peers }: { peers: string[] }) {
             </tr>
           </thead>
           <tbody>
-            {["M.Cap (₹T)", "Div Yld %", "Beta", "P/B Ratio"].map((metric, rowIndex) => (
+            {rows.map(([metric, getValue]) => (
               <tr key={metric} className="border-b-2 border-black last:border-b-0">
                 <td className="sticky left-0 border-r-4 border-black bg-metric-surface-variant p-4 font-bold">
                   {metric}
@@ -379,15 +554,21 @@ function ReportTable({ peers }: { peers: string[] }) {
                 {peers.map((peer, index) => (
                   <td
                     key={`${peer}-${metric}`}
-                    className={`border-r-2 border-black p-4 last:border-r-0 ${index === 0 ? "bg-metric-green-bright/25 font-bold" : rowIndex === 1 && index === 1 ? "bg-metric-pink text-metric-red" : ""}`}
+                    className={`border-r-2 border-black p-4 last:border-r-0 ${index === 0 ? "bg-metric-green-bright/25 font-bold" : ""}`}
                   >
-                    {index === 0 ? ["19.8", "0.34", "0.88", "2.4"][rowIndex] : "Median"}
+                    {getValue(snapshots[index] ?? null)}
                   </td>
                 ))}
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="mt-4 border-2 border-dashed border-black bg-white p-3">
+        <p className="text-sm leading-6">
+          <strong>WHAT THIS MEANS:</strong> Peer movement helps explain whether today&apos;s setup is specific to the company
+          or part of a broader sector move. This table uses fresh market snapshots where Yahoo provides them.
+        </p>
       </div>
     </section>
   );

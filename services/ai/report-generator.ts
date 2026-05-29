@@ -60,7 +60,7 @@ export async function generateReportPayload(
   }).format(new Date());
 
   const prompt = [
-    `Generate a Metric Finance equity research report for ticker ${ticker}.`,
+    `Generate a Metric Finance pre-buy intelligence brief for ticker ${ticker}.`,
     `Use analyzedAt exactly as: ${analyzedAt}.`,
     marketData
       ? `Use this market data as the factual source. Do not contradict it: ${JSON.stringify(marketData)}`
@@ -68,8 +68,8 @@ export async function generateReportPayload(
     "The report must be useful for a mobile UI and must fit the provided schema.",
     "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
     "Use exactly three peer labels: 'Target' followed by the top two direct listed competitors from the market data peers field.",
-    "The executive summary should cover business quality, valuation context, contrarian signal, sentiment, and risks.",
-    "Keep wording direct and avoid promises, ratings, or buy/sell recommendations.",
+    "The executive summary should blend daily trader context and direct equity investor context: market setup, price behaviour, business quality, valuation context, peer lens, recent signals, and risks.",
+    "Do not use buy, sell, hold, accumulate, avoid, target price, or stop loss language. Explain what the data means without making a recommendation.",
   ].join("\n");
   const { object, modelId } = await generateWithModelFallback(prompt);
 
@@ -110,7 +110,7 @@ async function generateWithModelFallback(prompt: string) {
         schemaName: "MetricFinanceEquityReport",
         temperature: 0.35,
         system:
-          "You write concise equity research for Indian NSE and BSE listed stocks. Return only grounded, cautious analysis. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. This is not financial advice.",
+          "You write concise pre-buy intelligence for Indian NSE and BSE listed stocks. Return only grounded, cautious analysis. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. Never give buy, sell, hold, target price, stop loss, or recommendation language. Explain what the data means. This is not financial advice.",
         prompt,
       });
 
