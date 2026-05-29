@@ -213,7 +213,12 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <ReportTable target={marketData} peers={displayPeers} peerSnapshots={peerSnapshots} />
+        <ReportTable
+          target={marketData}
+          targetLabel={report.ticker}
+          peers={displayPeers}
+          peerSnapshots={peerSnapshots}
+        />
 
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -509,13 +514,16 @@ function AnalysisCard({ label, copy }: { label: string; copy: string }) {
 
 function ReportTable({
   target,
+  targetLabel,
   peers,
   peerSnapshots,
 }: {
   target: MarketSnapshot | undefined;
+  targetLabel: string;
   peers: string[];
   peerSnapshots: Array<MarketSnapshot | null>;
 }) {
+  const peerLabels = [targetLabel, ...peers.slice(1)];
   const snapshots = [target ?? null, ...peerSnapshots];
   const rows = [
     ["Price", (snapshot: MarketSnapshot | null) => formatPrice(snapshot?.price ?? null)],
@@ -535,7 +543,7 @@ function ReportTable({
               <th className="sticky left-0 border-r-4 border-black bg-metric-surface-variant p-4 text-xs uppercase">
                 Metric
               </th>
-              {peers.map((peer, index) => (
+              {peerLabels.map((peer, index) => (
                 <th
                   key={peer}
                   className={`border-r-2 border-black p-4 text-xs uppercase last:border-r-0 ${index === 0 ? "bg-metric-green-bright" : "bg-white"}`}
@@ -551,7 +559,7 @@ function ReportTable({
                 <td className="sticky left-0 border-r-4 border-black bg-metric-surface-variant p-4 font-bold">
                   {metric}
                 </td>
-                {peers.map((peer, index) => (
+                {peerLabels.map((peer, index) => (
                   <td
                     key={`${peer}-${metric}`}
                     className={`border-r-2 border-black p-4 last:border-r-0 ${index === 0 ? "bg-metric-green-bright/25 font-bold" : ""}`}
