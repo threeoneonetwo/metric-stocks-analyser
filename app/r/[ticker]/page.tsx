@@ -68,7 +68,12 @@ export default async function ReportPage({ params }: ReportPageProps) {
         <ReportSection title="Metric Brief" accent>
           <p className="text-base leading-7">
             {buildMetricBrief({
+              ticker: report.ticker,
               companyName: report.companyName,
+              marketData,
+              peerLabels: displayPeers.slice(1),
+              peerSnapshots,
+              metrics: report.metrics,
               marketRead,
               rangeRead,
               volumeRead,
@@ -319,15 +324,52 @@ async function getPeerSnapshots(peers: string[]) {
 }
 
 function buildMetricBrief(input: {
+  ticker: string;
   companyName: string;
+  marketData: MarketSnapshot | undefined;
+  peerLabels: string[];
+  peerSnapshots: Array<MarketSnapshot | null>;
+  metrics: Array<[string, string, string, string]>;
   marketRead: AnalysisRead;
   rangeRead: AnalysisRead;
   volumeRead: AnalysisRead;
   reportSummary: string;
 }) {
-  const base = `${input.companyName} is being shown as a pre-buy intelligence brief, not a stock recommendation. ${input.marketRead.meaning} ${input.rangeRead.meaning} ${input.volumeRead.meaning}`;
+  const marketData = input.marketData;
+  const dayRange =
+    marketData?.dayLow !== null &&
+    marketData?.dayLow !== undefined &&
+    marketData?.dayHigh !== null &&
+    marketData?.dayHigh !== undefined
+      ? `${formatPrice(marketData.dayLow)}-${formatPrice(marketData.dayHigh)}`
+      : "N/A";
+  const yearlyRange =
+    marketData?.fiftyTwoWeekLow !== null &&
+    marketData?.fiftyTwoWeekLow !== undefined &&
+    marketData?.fiftyTwoWeekHigh !== null &&
+    marketData?.fiftyTwoWeekHigh !== undefined
+      ? `${formatPrice(marketData.fiftyTwoWeekLow)}-${formatPrice(marketData.fiftyTwoWeekHigh)}`
+      : "N/A";
+  const peerRead = input.peerLabels
+    .map((peer, index) => {
+      const snapshot = input.peerSnapshots[index];
+      return `${peer}: ${formatPercent(snapshot?.dayChangePercent ?? null)}`;
+    })
+    .join(", ");
+  const metricRead = input.metrics
+    .slice(0, 3)
+    .map(([label, value, yoy, median]) => `${label} ${value} (${yoy} YoY, median ${median})`)
+    .join("; ");
+
+  const base = [
+    `${input.companyName} (${input.ticker}) is being shown as a pre-buy intelligence brief, not a stock recommendation.`,
+    `Latest setup: price ${formatPrice(marketData?.price ?? null)}, day change ${formatPercent(marketData?.dayChangePercent ?? null)}, day range ${dayRange}, volume ${formatNumber(marketData?.volume ?? null)}, and 52-week range ${yearlyRange}.`,
+    `Market meaning: ${input.marketRead.meaning} ${input.rangeRead.meaning} ${input.volumeRead.meaning}`,
+    `Peer check: ${peerRead || "peer snapshots are unavailable"}. This shows whether today's move is company-specific or moving with close competitors.`,
+    `Business context: sector ${marketData?.sector ?? "N/A"}, industry ${marketData?.industry ?? "N/A"}. Key available metrics: ${metricRead || "N/A"}.`,
+  ].join(" ");
   const cleanSummary = input.reportSummary.replace(/\b(buy|sell|hold|accumulate|avoid)\b/gi, "research");
-  return `${base} The deeper read is: ${cleanSummary}`;
+  return `${base} Brief: ${cleanSummary}`;
 }
 
 type AnalysisRead = {
@@ -360,7 +402,7 @@ function getMarketRead(marketData: MarketSnapshot | undefined): AnalysisRead {
 
   return {
     label: "Market Signal: Normal Range",
-    meaning: `The stock is moving ${formatPercent(change)} on the latest Yahoo snapshot. That is not enough by itself to define the setup, so range, volume, peers, and fundamentals need to carry the interpretation.`,
+    meaning: `The stock is moving ${formatPercent(change)} on the latest Yahoo snapshot, which is a moderate daily move rather than an extreme signal by itself.`,
   };
 }
 
