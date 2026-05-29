@@ -673,10 +673,16 @@ function RecentSignals({
             news.map((item) => (
               <div key={`${item.title}-${item.publishedAt}`} className="border-2 border-black bg-white p-3">
                 <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[0.65rem] font-bold uppercase text-metric-muted">
-                  <span>{item.symbol ?? "Tradient"}</span>
+                  <span>{item.source}</span>
                   <span>{item.sentiment}</span>
                 </div>
-                <p className="font-bold leading-6">{item.title}</p>
+                {item.url ? (
+                  <a href={item.url} target="_blank" rel="noreferrer" className="font-bold leading-6 underline decoration-2 underline-offset-4">
+                    {item.title}
+                  </a>
+                ) : (
+                  <p className="font-bold leading-6">{item.title}</p>
+                )}
                 <p className="mt-1 text-sm leading-6">{item.summary}</p>
                 {item.publishedAt ? (
                   <p className="mt-2 font-mono text-[0.65rem] uppercase text-metric-muted">
@@ -764,10 +770,16 @@ function NewsSentiment({ signals }: { signals: TradientSignal | null }) {
           news.map((item) => (
             <div key={`sentiment-${item.title}-${item.publishedAt}`} className="border-2 border-black bg-white p-3">
               <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[0.65rem] font-bold uppercase text-metric-muted">
-                <span>{item.symbol ?? "Tradient"}</span>
+                <span>{item.source}</span>
                 <span>{item.sentiment}</span>
               </div>
-              <p className="font-bold leading-6">{item.title}</p>
+              {item.url ? (
+                <a href={item.url} target="_blank" rel="noreferrer" className="font-bold leading-6 underline decoration-2 underline-offset-4">
+                  {item.title}
+                </a>
+              ) : (
+                <p className="font-bold leading-6">{item.title}</p>
+              )}
               <p className="mt-1 text-sm leading-6">{item.summary}</p>
             </div>
           ))

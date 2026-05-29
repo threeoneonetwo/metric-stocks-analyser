@@ -1,6 +1,8 @@
 import type { Result } from "@/services/result";
+import { XMLParser } from "fast-xml-parser";
 
 const TRADIENT_BASE_URL = "https://api.tradient.org/v1/api";
+const GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss/search";
 
 type TradientNewsResponse = {
   data?: {
@@ -29,6 +31,8 @@ export type TradientSignal = {
     sentiment: string;
     publishedAt: string | null;
     symbol: string | null;
+    source: string;
+    url: string | null;
   }>;
   technicals: Array<{
     label: string;
@@ -44,7 +48,7 @@ export async function getTradientSignals(input: {
 }): Promise<Result<TradientSignal>> {
   try {
     const [news, technicals] = await Promise.all([
-      getTradientNews(input),
+      getStockNews(input),
       getTradientTechnicals(input.ticker),
     ]);
 
@@ -65,6 +69,20 @@ export async function getTradientSignals(input: {
   }
 }
 
+async function getStockNews(input: { ticker: string; companyName: string }) {
+  const tradientNews = await getTradientNews(input);
+  const webNews = await getWebNews(input);
+  const combinedNews = [
+    ...(tradientNews.ok ? tradientNews.data : []),
+    ...(webNews.ok ? webNews.data : []),
+  ];
+
+  return {
+    ok: true as const,
+    data: dedupeNews(combinedNews).slice(0, 5),
+  };
+}
+
 async function getTradientNews(input: { ticker: string; companyName: string }) {
   const response = await getTradientJson<TradientNewsResponse>(`${TRADIENT_BASE_URL}/market/news`);
   if (!response.ok) {
@@ -81,6 +99,29 @@ async function getTradientNews(input: { ticker: string; companyName: string }) {
       sentiment: item.news_object?.overall_sentiment?.trim() || "neutral",
       publishedAt: formatTradientDate(item.publish_date),
       symbol: item.sm_symbol ?? item.display_symbol ?? null,
+      source: "Tradient",
+      url: null,
+    }));
+
+  return { ok: true as const, data: news };
+}
+
+async function getWebNews(input: { ticker: string; companyName: string }) {
+  const response = await getGoogleNewsRss(input);
+  if (!response.ok) {
+    return response;
+  }
+
+  const news = response.data
+    .slice(0, 5)
+    .map((item) => ({
+      title: item.title,
+      summary: `Web coverage from ${item.source}. Open the article for the full context behind this business signal.`,
+      sentiment: inferHeadlineSentiment(item.title),
+      publishedAt: item.publishedAt,
+      symbol: input.ticker,
+      source: item.source,
+      url: item.url,
     }));
 
   return { ok: true as const, data: news };
@@ -182,6 +223,131 @@ function matchesTicker(item: TradientNewsItem, terms: Set<string>) {
   return [...terms].some((term) => term.length > 2 && haystack.includes(term));
 }
 
+type GoogleNewsRss = {
+  rss?: {
+    channel?: {
+      item?: GoogleNewsItem | GoogleNewsItem[];
+    };
+  };
+};
+
+type GoogleNewsItem = {
+  title?: string;
+  link?: string;
+  pubDate?: string;
+  source?: string | { "#text"?: string };
+};
+
+async function getGoogleNewsRss(input: { ticker: string; companyName: string }) {
+  const company = cleanCompanyName(input.companyName);
+  const searchTerms = [`"${company}"`];
+  const shortName = company.split(" ").slice(0, 2).join(" ");
+  if (shortName && shortName !== company) {
+    searchTerms.push(`"${shortName}"`);
+  }
+  if (input.ticker.length >= 4 && input.ticker.length <= 12) {
+    searchTerms.push(input.ticker);
+  }
+
+  const query = `${searchTerms.join(" OR ")} stock business earnings market`;
+  const url = `${GOOGLE_NEWS_RSS_URL}?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
+  const response = await getRssXml(url);
+  if (!response.ok) {
+    return response;
+  }
+
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    trimValues: true,
+  });
+  const parsed = parser.parse(response.data) as GoogleNewsRss;
+  const rawItems = parsed.rss?.channel?.item;
+  const items = Array.isArray(rawItems) ? rawItems : rawItems ? [rawItems] : [];
+  const matchTerms = buildWebMatchTerms(input);
+  const news = items
+    .map(normalizeGoogleNewsItem)
+    .filter((item) => item.title && item.url && matchesWebArticle(item, matchTerms));
+
+  return { ok: true as const, data: news };
+}
+
+function buildWebMatchTerms(input: { ticker: string; companyName: string }) {
+  const company = cleanCompanyName(input.companyName);
+  const shortName = company.split(" ").slice(0, 2).join(" ");
+  return new Set([company, shortName, input.ticker].map(normalizeTerm).filter((term) => term.length > 2));
+}
+
+function normalizeGoogleNewsItem(item: GoogleNewsItem) {
+  const titleParts = (item.title ?? "Untitled web article").split(" - ");
+  const source =
+    typeof item.source === "string"
+      ? item.source
+      : item.source?.["#text"] ?? titleParts.at(-1) ?? "Google News";
+  const title = titleParts.length > 1 ? titleParts.slice(0, -1).join(" - ") : titleParts[0];
+  return {
+    title: decodeHtml(title),
+    source: decodeHtml(source),
+    url: item.link ?? null,
+    publishedAt: parseDate(item.pubDate),
+  };
+}
+
+function matchesWebArticle(
+  item: { title: string; source: string; url: string | null },
+  terms: Set<string>,
+) {
+  const haystack = normalizeTerm(`${item.title} ${item.source} ${item.url ?? ""}`);
+  return [...terms].some((term) => haystack.includes(term));
+}
+
+function cleanCompanyName(value: string) {
+  return value
+    .replace(/\b(limited|ltd|company|co)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function dedupeNews<T extends { title: string; url: string | null }>(items: T[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = normalizeTerm(item.url ?? item.title);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function inferHeadlineSentiment(title: string) {
+  const normalizedTitle = normalizeTerm(title);
+  if (/\b(gain|gains|rally|surge|surges|rise|rises|growth|profit|upgrade|beats|wins|launch|expands|record)\b/.test(normalizedTitle)) {
+    return "positive";
+  }
+  if (/\b(fall|falls|drop|drops|loss|miss|downgrade|cuts|cut|crash|probe|penalty|fine|weak|decline)\b/.test(normalizedTitle)) {
+    return "negative";
+  }
+  return "neutral";
+}
+
+function parseDate(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function decodeHtml(value: string) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
 function normalizeTerm(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -219,6 +385,34 @@ async function getTradientJson<T>(url: string): Promise<Result<T>> {
       ok: false,
       code: "UPSTREAM",
       error: error instanceof Error ? error.message : "Tradient request failed.",
+    };
+  }
+}
+
+async function getRssXml(url: string): Promise<Result<string>> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/rss+xml, application/xml, text/xml",
+        "User-Agent": "MetricFinance/0.1",
+      },
+      next: { revalidate: 15 * 60 },
+    });
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        code: response.status === 404 ? "NOT_FOUND" : "UPSTREAM",
+        error: `News RSS request failed with ${response.status}.`,
+      };
+    }
+
+    return { ok: true, data: await response.text() };
+  } catch (error) {
+    return {
+      ok: false,
+      code: "UPSTREAM",
+      error: error instanceof Error ? error.message : "News RSS request failed.",
     };
   }
 }
