@@ -6,6 +6,8 @@ import { getReportViewForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { getMarketDataService } from "@/services/marketData";
 import type { MarketSnapshot } from "@/services/marketData/types";
+import { getTradientSignals } from "@/services/tradient";
+import type { TradientSignal } from "@/services/tradient";
 import { notFound } from "next/navigation";
 
 type ReportPageProps = {
@@ -43,6 +45,11 @@ export default async function ReportPage({ params }: ReportPageProps) {
   const marketRead = getMarketRead(marketData);
   const rangeRead = getRangeRead(marketData);
   const volumeRead = getVolumeRead(marketData);
+  const tradientSignals = await getTradientSignals({
+    ticker: resolved.data.ticker,
+    companyName: report.companyName,
+  });
+  const signals = tradientSignals.ok ? tradientSignals.data : null;
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -77,6 +84,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
               marketRead,
               rangeRead,
               volumeRead,
+              signals,
               reportSummary: report.summary,
             })}
           </p>
@@ -242,17 +250,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
                 <div className="w-[18%] bg-metric-pink" />
               </div>
             </div>
-            <div className="grid gap-2">
-              <div className="border-b-2 border-black/10 p-2">
-                <p className="font-bold">Sentiment signal</p>
-                <p className="mt-1 text-sm leading-6">{report.summary}</p>
-              </div>
-              <div className="p-2">
-                <p className="font-mono text-xs uppercase text-metric-muted">
-                  Live news headlines are not connected yet. The current signal is based on market data and the generated brief.
-                </p>
-              </div>
-            </div>
+            <RecentSignals signals={signals} fallbackSummary={report.summary} />
           </div>
         </section>
 
@@ -333,6 +331,7 @@ function buildMetricBrief(input: {
   marketRead: AnalysisRead;
   rangeRead: AnalysisRead;
   volumeRead: AnalysisRead;
+  signals: TradientSignal | null;
   reportSummary: string;
 }) {
   const marketData = input.marketData;
@@ -360,6 +359,12 @@ function buildMetricBrief(input: {
     .slice(0, 3)
     .map(([label, value, yoy, median]) => `${label} ${value} (${yoy} YoY, median ${median})`)
     .join("; ");
+  const technicalRead = input.signals?.technicals.length
+    ? input.signals.technicals.map((signal) => `${signal.label} ${signal.value}: ${signal.meaning}`).join(" ")
+    : "Tradient technical signals are unavailable for this snapshot.";
+  const newsRead = input.signals?.news.length
+    ? input.signals.news.map((item) => `${item.title} (${item.sentiment})`).join("; ")
+    : "No ticker-matched Tradient headlines were found in the latest market-news batch.";
 
   const base = [
     `${input.companyName} (${input.ticker}) is showing ${formatPrice(marketData?.price ?? null)} with a ${formatPercent(marketData?.dayChangePercent ?? null)} latest day move.`,
@@ -367,6 +372,8 @@ function buildMetricBrief(input: {
     `Market meaning: ${input.marketRead.meaning} ${input.rangeRead.meaning} ${input.volumeRead.meaning}`,
     `Peer check: ${peerRead || "peer snapshots are unavailable"}. This shows whether today's move is company-specific or moving with close competitors.`,
     `Business context: sector ${marketData?.sector ?? "N/A"}, industry ${marketData?.industry ?? "N/A"}. Key available metrics: ${metricRead || "N/A"}.`,
+    `Technical layer: ${technicalRead}`,
+    `News layer: ${newsRead}`,
   ].join(" ");
   const cleanSummary = input.reportSummary.replace(/\b(buy|sell|hold|accumulate|avoid)\b/gi, "research");
   return `${base} Brief: ${cleanSummary}`;
@@ -550,6 +557,67 @@ function AnalysisCard({ label, copy }: { label: string; copy: string }) {
         {label}
       </p>
       <p className="text-sm leading-6">{copy}</p>
+    </div>
+  );
+}
+
+function RecentSignals({
+  signals,
+  fallbackSummary,
+}: {
+  signals: TradientSignal | null;
+  fallbackSummary: string;
+}) {
+  const technicals = signals?.technicals ?? [];
+  const news = signals?.news ?? [];
+
+  return (
+    <div className="grid gap-3">
+      <div className="border-b-2 border-black/10 p-2">
+        <p className="font-bold">Technical signal</p>
+        <div className="mt-2 grid gap-2">
+          {technicals.length ? (
+            technicals.map((item) => (
+              <div key={item.label} className="border-2 border-black bg-white p-3">
+                <div className="flex items-center justify-between gap-3 font-mono text-xs font-bold uppercase">
+                  <span>{item.label}</span>
+                  <span>{item.value}</span>
+                </div>
+                <p className="mt-2 text-sm leading-6">{item.meaning}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm leading-6">{fallbackSummary}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="p-2">
+        <p className="font-bold">News signal</p>
+        <div className="mt-2 grid gap-2">
+          {news.length ? (
+            news.map((item) => (
+              <div key={`${item.title}-${item.publishedAt}`} className="border-2 border-black bg-white p-3">
+                <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[0.65rem] font-bold uppercase text-metric-muted">
+                  <span>{item.symbol ?? "Tradient"}</span>
+                  <span>{item.sentiment}</span>
+                </div>
+                <p className="font-bold leading-6">{item.title}</p>
+                <p className="mt-1 text-sm leading-6">{item.summary}</p>
+                {item.publishedAt ? (
+                  <p className="mt-2 font-mono text-[0.65rem] uppercase text-metric-muted">
+                    {formatTimestamp(item.publishedAt)}
+                  </p>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <p className="font-mono text-xs uppercase text-metric-muted">
+              No ticker-matched Tradient headlines in the latest market-news batch.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
