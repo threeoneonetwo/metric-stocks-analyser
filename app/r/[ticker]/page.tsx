@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-react";
 import { FooterBar, TopBar } from "@/components/site-chrome";
+import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/competitors";
 import { getReportViewForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { getMarketDataService } from "@/services/marketData";
@@ -27,6 +28,13 @@ export default async function ReportPage({ params }: ReportPageProps) {
     marketData?.dayChangePercent !== null && marketData?.dayChangePercent !== undefined
       ? formatPercent(marketData.dayChangePercent)
       : report.dayChange;
+  const displayPeers = shouldReplacePeerLabels(report.peers)
+    ? getPeerComparisonLabels({
+        ticker: resolved.data.ticker,
+        sector: marketData?.sector ?? resolved.data.sector,
+        industry: marketData?.industry ?? resolved.data.industry,
+      })
+    : report.peers;
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -162,7 +170,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <ReportTable peers={report.peers} />
+        <ReportTable peers={displayPeers} />
 
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">

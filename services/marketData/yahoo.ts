@@ -1,4 +1,5 @@
 import type { Result } from "@/services/result";
+import { getPeerComparisonLabels } from "@/domain/competitors";
 import type { MarketDataService, MarketSnapshot, MarketSymbol } from "./types";
 
 type YahooSearchResponse = {
@@ -106,7 +107,11 @@ export const yahooMarketData: MarketDataService = {
         asOf: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
         source: "yahoo",
         sourceUrl: `https://finance.yahoo.com/quote/${encodeURIComponent(resolved.data.symbol)}`,
-        peers: ["Target", "NIFTY 50", "Sector Median", "Peer Median"],
+        peers: getPeerComparisonLabels({
+          ticker,
+          sector: resolved.data.sector,
+          industry: resolved.data.industry,
+        }),
         metrics: buildMetrics({
           open: lastNumber(quote?.open),
           high: meta.regularMarketDayHigh ?? lastNumber(quote?.high),

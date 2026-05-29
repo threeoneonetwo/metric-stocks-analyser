@@ -1,4 +1,5 @@
 import type { ReportPayload } from "@/db/types";
+import { getPeerComparisonLabels } from "@/domain/competitors";
 
 export function getMockReport(ticker: string): ReportPayload {
   return {
@@ -22,6 +23,6 @@ export function getMockReport(ticker: string): ReportPayload {
       ["D/E", "0.38x", "-0.04x", "0.42x"],
       ["3Y CAGR", "11.7%", "+160 bps", "9.3%"],
     ],
-    peers: ["Target", "Peer A", "Peer B", "Peer C"],
+    peers: getPeerComparisonLabels({ ticker }),
   };
 }

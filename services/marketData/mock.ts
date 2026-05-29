@@ -1,4 +1,5 @@
 import type { MarketDataService } from "./types";
+import { getPeerComparisonLabels } from "@/domain/competitors";
 import { normalizeTicker } from "@/lib/utils";
 
 export const mockMarketData: MarketDataService = {
@@ -39,7 +40,7 @@ export const mockMarketData: MarketDataService = {
         asOf: null,
         source: "mock",
         sourceUrl: null,
-        peers: ["Target", "Peer A", "Peer B", "Peer C"],
+        peers: getPeerComparisonLabels({ ticker }),
         metrics: [],
       },
     };

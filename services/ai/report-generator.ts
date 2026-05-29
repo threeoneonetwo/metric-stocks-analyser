@@ -24,7 +24,7 @@ const reportPayloadSchema = z.object({
   overview: z.string().min(120),
   summary: z.string().min(160),
   metrics: z.array(generatedMetricSchema).length(6),
-  peers: z.array(z.string().min(1)).length(4),
+  peers: z.array(z.string().min(1)).length(3),
 });
 
 export type GeneratedReportResult = {
@@ -67,7 +67,7 @@ export async function generateReportPayload(
       : "No market data provider response is available. Use N/A for unavailable market fields.",
     "The report must be useful for a mobile UI and must fit the provided schema.",
     "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
-    "Use four peer labels. The first peer must be 'Target'.",
+    "Use exactly three peer labels: 'Target' followed by the top two direct listed competitors from the market data peers field.",
     "The executive summary should cover business quality, valuation context, contrarian signal, sentiment, and risks.",
     "Keep wording direct and avoid promises, ratings, or buy/sell recommendations.",
   ].join("\n");
@@ -146,7 +146,7 @@ function applyMarketData(report: ReportPayload, marketData: MarketSnapshot | und
     companyName: marketData.companyName,
     price: formatPrice(marketData.price),
     dayChange: formatPercent(marketData.dayChangePercent),
-    peers: marketData.peers.length === 4 ? marketData.peers : report.peers,
+    peers: marketData.peers.length === 3 ? marketData.peers : report.peers,
   };
 }
 

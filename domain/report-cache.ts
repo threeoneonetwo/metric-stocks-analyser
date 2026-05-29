@@ -178,7 +178,7 @@ function buildMarketDataReport(ticker: string, marketData: MarketSnapshot): Repo
     summary:
       "This report is grounded in the latest Yahoo Finance market snapshot because AI report generation is temporarily unavailable. It uses real quote, volume, range, sector, and industry fields where Yahoo provides them. Full company fundamentals, peer medians, and news sentiment still require a licensed fundamentals/news provider.",
     metrics: paddedMetrics,
-    peers: marketData.peers.length === 4 ? marketData.peers : ["Target", "NIFTY 50", "Sector Median", "Peer Median"],
+    peers: marketData.peers.length === 3 ? marketData.peers : ["Target", "NIFTY 50", "Sector Median"],
   };
 }
 

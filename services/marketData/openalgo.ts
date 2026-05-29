@@ -1,4 +1,5 @@
 import type { Result } from "@/services/result";
+import { getPeerComparisonLabels } from "@/domain/competitors";
 import type { MarketDataService, MarketSnapshot, MarketSymbol } from "./types";
 
 type OpenAlgoSearchItem = {
@@ -108,7 +109,7 @@ export const openAlgoMarketData: MarketDataService = {
         asOf: new Date().toISOString(),
         source: "openalgo",
         sourceUrl: `${baseUrl}/api/v1/quotes`,
-        peers: ["Target", "NIFTY 50", "Sector Median", "Peer Median"],
+        peers: getPeerComparisonLabels({ ticker }),
         metrics: buildMetrics(data),
       },
     };
