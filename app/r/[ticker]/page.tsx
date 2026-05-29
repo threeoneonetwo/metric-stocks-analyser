@@ -50,11 +50,20 @@ export default async function ReportPage({ params }: ReportPageProps) {
     companyName: report.companyName,
   });
   const signals = tradientSignals.ok ? tradientSignals.data : null;
+  const signalTiles = buildSignalTiles({
+    displayDayChange,
+    marketData,
+    marketRead,
+    rangeRead,
+    volumeRead,
+    metrics: report.metrics,
+    signals,
+  });
 
   return (
     <main className="flex min-h-screen flex-col">
       <TopBar reportActions ticker={report.ticker} />
-      <div className="sticky top-[68px] z-40 border-b-4 border-black bg-white px-4 py-2">
+      <div className="sticky top-[68px] z-40 border-b-4 border-black bg-white px-4 py-3">
         <div className="mx-auto flex max-w-[42rem] items-center justify-between gap-4">
           <div>
             <p className="font-mono text-2xl font-bold uppercase leading-none">
@@ -71,9 +80,40 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </div>
       </div>
 
-      <article className="mx-auto flex w-full max-w-[42rem] flex-1 flex-col gap-10 px-4 py-10 sm:px-6">
-        <ReportSection title="Metric Brief" accent>
-          <p className="text-base leading-7">
+      <article className="mx-auto flex w-full max-w-[42rem] flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
+        <section className="border-4 border-black bg-black p-5 text-white neo-shadow">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <span className="border-2 border-white bg-metric-finance-accent px-3 py-1 font-mono text-xs font-extrabold uppercase tracking-[0.08em] text-black">
+              {report.ticker}
+            </span>
+            <span className="font-mono text-[0.65rem] font-bold uppercase tracking-[0.08em] text-metric-surface-dim">
+              {formatTimestamp(marketData?.asOf ?? null)}
+            </span>
+          </div>
+          <h1 className="text-5xl font-extrabold uppercase leading-[0.9] tracking-tight">
+            Before You Buy
+          </h1>
+          <p className="mt-4 text-sm font-bold uppercase leading-5 tracking-[0.04em] text-metric-finance-accent-soft">
+            {report.companyName}
+          </p>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <DataTile label="Price" value={displayPrice} tone="dark" />
+            <DataTile label="Day move" value={displayDayChange} tone="accent" />
+          </div>
+        </section>
+
+        <section className="surface p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <SectionHeading title="Metric Brief" />
+            <Link
+              href={`/analyze/${report.ticker}?refresh=1`}
+              className="neo-press inline-flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-metric-finance-accent"
+              aria-label="Refresh data"
+            >
+              <RefreshCw size={16} />
+            </Link>
+          </div>
+          <p className="text-[0.95rem] font-medium leading-7">
             {buildMetricBrief({
               ticker: report.ticker,
               companyName: report.companyName,
@@ -88,141 +128,70 @@ export default async function ReportPage({ params }: ReportPageProps) {
               reportSummary: report.summary,
             })}
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3 border-t-2 border-black/10 pt-4">
-            <span className="font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
-              Market data refreshed: {formatTimestamp(marketData?.asOf ?? null)}
-            </span>
-            <Link
-              href={`/analyze/${report.ticker}?refresh=1`}
-              className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-green underline decoration-2 underline-offset-4"
-            >
-              <RefreshCw size={14} /> Refresh data
-            </Link>
-          </div>
-        </ReportSection>
-
-        <section className="surface p-4">
-          <h2 className="mb-4 flex items-center gap-2 font-mono text-2xl font-bold uppercase leading-none">
-            <span className="h-4 w-4 bg-black" />
-            Market Snapshot
-          </h2>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              ["Price", displayPrice],
-              ["Day Change", displayDayChange],
-              ["Day High", formatPrice(marketData?.dayHigh ?? null)],
-              ["Day Low", formatPrice(marketData?.dayLow ?? null)],
-              ["Volume", formatNumber(marketData?.volume ?? null)],
-              ["Source", marketData?.source ?? "N/A"],
-            ].map(([label, value]) => (
-              <div key={label} className="border-2 border-black bg-white p-3 neo-shadow-sm">
-                <p className="font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
-                  {label}
-                </p>
-                <p className="mt-1 font-mono text-sm font-bold uppercase">{value}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="grid overflow-hidden border-4 border-black neo-shadow">
-          <div className="flex items-center justify-center border-b-4 border-black bg-metric-finance-accent p-6">
-            <h2 className="text-center font-mono text-3xl font-bold uppercase leading-none">
-              {marketRead.label}
-            </h2>
-          </div>
-          <div className="bg-white p-6">
-            <p className="text-base italic leading-7">{marketRead.meaning}</p>
-          </div>
         </section>
 
         <section>
-          <SectionHeading title="Market Setup" />
-          <div className="mb-4 grid grid-cols-2 gap-2">
-            {[
-              ["Sector", marketData?.sector ?? "N/A"],
-              ["Market Cap", formatLargeInr(marketData?.marketCap ?? null)],
-            ].map(([label, value]) => (
-              <div key={label} className="border-2 border-black bg-white p-3 neo-shadow-sm">
-                <p className="font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
-                  {label}
-                </p>
-                <p className="mt-1 font-mono text-sm font-bold uppercase">{value}</p>
-              </div>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <SectionHeading title="Signal Grid" />
+            <span className="font-mono text-[0.65rem] font-bold uppercase tracking-[0.08em] text-metric-muted">
+              Live read
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {signalTiles.map((tile) => (
+              <SignalTile key={tile.label} {...tile} />
             ))}
-            <div className="col-span-2 border-2 border-black bg-white p-3 neo-shadow-sm">
-              <p className="font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
-                52W Range
-              </p>
-              <div className="mt-2 flex items-center justify-between gap-4">
-                <span className="font-mono text-xs">{formatPrice(marketData?.fiftyTwoWeekLow ?? null)}</span>
-                <div className="relative h-2 flex-1 border border-black bg-metric-surface-variant">
-                  <div className="absolute right-6 top-1/2 h-4 w-3 -translate-y-1/2 bg-black" />
-                </div>
-                <span className="font-mono text-xs font-bold">{formatPrice(marketData?.fiftyTwoWeekHigh ?? null)}</span>
-              </div>
+          </div>
+        </section>
+
+        <section className="surface p-5">
+          <SectionHeading title="Market Setup" />
+          <div className="mt-4 grid gap-2">
+            <AnalysisCard label="Price action" copy={marketRead.meaning} />
+            <AnalysisCard label="52W position" copy={rangeRead.meaning} />
+            <AnalysisCard label="Volume" copy={volumeRead.meaning} />
+          </div>
+          <div className="mt-4 border-2 border-black bg-metric-finance-accent-soft p-3">
+            <div className="mb-2 flex items-center justify-between gap-4 font-mono text-xs font-bold uppercase">
+              <span>{formatPrice(marketData?.fiftyTwoWeekLow ?? null)}</span>
+              <span>52W range</span>
+              <span>{formatPrice(marketData?.fiftyTwoWeekHigh ?? null)}</span>
+            </div>
+            <div className="h-3 border-2 border-black bg-white">
+              <div
+                className="h-full bg-metric-finance-accent"
+                style={{ width: `${getRangePosition(marketData)}%` }}
+              />
             </div>
           </div>
-          <div className="border-4 border-black bg-black p-4 text-white neo-shadow">
-            <p className="leading-7">{rangeRead.meaning}</p>
-          </div>
-        </section>
-
-        <section className="surface p-4">
-          <SectionHeading title="Price Behaviour" />
-          <div className="mt-4 grid gap-2">
-            {[
-              ["Daily movement", marketRead.meaning],
-              ["Range context", rangeRead.meaning],
-              ["Volume context", volumeRead.meaning],
-            ].map(([label, copy]) => (
-              <AnalysisCard key={label} label={label} copy={copy} />
-            ))}
-          </div>
         </section>
 
         <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
+          <div className="mb-3 flex items-end justify-between gap-4">
             <SectionHeading title="Business Quality" />
-            <span className="font-mono text-xs uppercase text-metric-muted">
-              AI + provider fields
+            <span className="font-mono text-[0.65rem] font-bold uppercase text-metric-muted">
+              Current feed
             </span>
           </div>
           <div className="grid gap-2">
-            {report.metrics.map(([label, value, yoy, median]) => (
+            {report.metrics.slice(0, 6).map(([label, value, yoy, median]) => (
               <div key={label} className="border-2 border-black bg-white p-4 neo-shadow-sm">
-                <p className="mb-2 font-mono text-xs uppercase tracking-[0.08em] text-metric-muted">
-                  {label}
-                </p>
-                <p className="font-mono text-2xl font-bold">{value}</p>
-                <div className="mt-4 flex justify-between border-t border-black/10 pt-2 font-mono text-xs">
-                  <span className={yoy.startsWith("-") ? "text-metric-red" : "text-metric-green"}>
-                    YoY {yoy}
-                  </span>
-                  <span className="text-metric-muted">Median {median}</span>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-muted">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-3xl font-extrabold leading-none">{value}</p>
+                  </div>
+                  <div className="text-right font-mono text-[0.65rem] font-bold uppercase leading-5">
+                    <p className={yoy.startsWith("-") ? "text-metric-red" : "text-metric-green"}>
+                      {yoy}
+                    </p>
+                    <p className="text-metric-muted">Median {median}</p>
+                  </div>
                 </div>
               </div>
             ))}
-          </div>
-          <div className="mt-4 border-2 border-dashed border-black bg-metric-green-bright/25 p-3">
-            <p className="text-sm leading-6">
-              <strong>WHAT THIS MEANS:</strong> These fields are meant to explain business strength,
-              valuation context, and balance-sheet quality before someone decides whether to research further.
-            </p>
-          </div>
-        </section>
-
-        <section className="surface p-4">
-          <SectionHeading title="Valuation Context" />
-          <div className="mt-4 grid gap-2">
-            <AnalysisCard
-              label="Valuation lens"
-              copy="A higher multiple needs stronger growth, margins, and execution to justify it; a lower multiple still needs a check on debt, earnings quality, and sector risk."
-            />
-            <AnalysisCard
-              label="Current limitation"
-              copy="Live valuation ratios and historical averages need a licensed fundamentals feed. Until that is connected, price, range, volume, sector, industry, and AI-generated financial context are shown separately."
-            />
           </div>
         </section>
 
@@ -255,12 +224,12 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         <section>
-          <SectionHeading title="Risk Map" />
-          <div className="mt-4 grid gap-4">
+          <SectionHeading title="What Could Matter" />
+          <div className="mt-4 grid gap-3">
             {[
-              [AlertTriangle, "Data coverage", "Yahoo Finance currently supplies price, volume, sector, industry, and range fields. Full fundamentals still need a licensed provider.", "bg-metric-red"],
-              [TrendingDown, "Interpretation risk", "Momentum, valuation, and business quality should be read together. One strong field does not explain the whole stock.", "bg-metric-pink"],
-              [Bolt, "Latency", `This page fetches a fresh market snapshot on every report load. Snapshot timestamp: ${formatTimestamp(marketData?.asOf ?? null)}.`, "bg-metric-green"],
+              [AlertTriangle, "Valuation risk", "A higher multiple needs stronger growth, margins, and execution to justify it.", "bg-metric-red"],
+              [TrendingDown, "Earnings risk", "Business quality and price action need to be read with fresh quarterly fundamentals once connected.", "bg-metric-pink"],
+              [Bolt, "Market timing", `Fresh snapshot: ${formatTimestamp(marketData?.asOf ?? null)}. Short-term setups can change quickly around news, volume, and peer moves.`, "bg-metric-green"],
             ].map(([Icon, title, copy, stripe]) => (
               <div key={title as string} className="relative overflow-hidden border-2 border-black bg-white p-4 neo-shadow-sm">
                 <div className={`absolute right-0 top-0 h-full w-2 ${stripe as string}`} />
@@ -274,11 +243,13 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <section className="border-4 border-black bg-black p-10 text-center text-white neo-shadow">
-          <h2 className="mb-6 font-serif text-3xl font-bold">
-            Know what the data means before acting.
-          </h2>
-          <button className="neo-press inline-flex items-center gap-2 border-4 border-black bg-metric-green-bright px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-black neo-shadow">
+        <section className="border-4 border-black bg-black p-6 text-white neo-shadow">
+          <SectionHeading title="What This Means" inverted />
+          <p className="mt-4 text-sm leading-6 text-metric-surface-dim">
+            {marketRead.meaning} {rangeRead.meaning} The peer lens and recent
+            signals explain whether the setup is stock-specific or sector-wide.
+          </p>
+          <button className="neo-press mt-6 inline-flex w-full items-center justify-center gap-2 border-4 border-black bg-metric-finance-accent px-8 py-4 font-mono text-sm font-extrabold uppercase tracking-[0.05em] text-black neo-shadow">
             <Share2 size={18} /> Share Report
           </button>
         </section>
@@ -459,6 +430,85 @@ function getVolumeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   };
 }
 
+function buildSignalTiles(input: {
+  displayDayChange: string;
+  marketData: MarketSnapshot | undefined;
+  marketRead: AnalysisRead;
+  rangeRead: AnalysisRead;
+  volumeRead: AnalysisRead;
+  metrics: Array<[string, string, string, string]>;
+  signals: TradientSignal | null;
+}) {
+  const metric = (pattern: RegExp) => input.metrics.find(([label]) => pattern.test(label));
+  const valuation = metric(/p\/?e|valuation/i);
+  const quality = metric(/roe|roce|margin|profit/i);
+  const debt = metric(/debt|d\/?e|risk/i);
+  const technical = input.signals?.technicals[0];
+  const newsCount = input.signals?.news.length ?? 0;
+
+  return [
+    {
+      label: "Price Action",
+      value: input.displayDayChange,
+      meaning: input.marketRead.label.replace("Market Signal: ", ""),
+      tone: "accent" as const,
+    },
+    {
+      label: "Volume",
+      value: formatNumber(input.marketData?.volume ?? null),
+      meaning: input.volumeRead.label.replace("Volume Context: ", ""),
+      tone: "white" as const,
+    },
+    {
+      label: "52W Position",
+      value: `${getRangePosition(input.marketData)}%`,
+      meaning: input.rangeRead.label.replace("Range Context: ", ""),
+      tone: "white" as const,
+    },
+    {
+      label: "Valuation",
+      value: valuation?.[1] ?? "Pending",
+      meaning: valuation ? `${valuation[2]} YoY` : "Needs fundamentals feed",
+      tone: "dark" as const,
+    },
+    {
+      label: "Business Quality",
+      value: quality?.[1] ?? "Mixed",
+      meaning: quality ? `${quality[0]} vs ${quality[3]}` : "AI context only",
+      tone: "white" as const,
+    },
+    {
+      label: "Debt / Risk",
+      value: debt?.[1] ?? "Check",
+      meaning: debt ? `${debt[0]} vs ${debt[3]}` : "Awaiting risk feed",
+      tone: "white" as const,
+    },
+    {
+      label: "Technical Setup",
+      value: technical?.value ?? "N/A",
+      meaning: technical?.label ?? "Tradient signal",
+      tone: "accent" as const,
+    },
+    {
+      label: "News Signal",
+      value: newsCount ? `${newsCount} item${newsCount === 1 ? "" : "s"}` : "None",
+      meaning: newsCount ? "Ticker-matched news" : "No exact match",
+      tone: "white" as const,
+    },
+  ];
+}
+
+function getRangePosition(marketData: MarketSnapshot | undefined) {
+  const price = marketData?.price;
+  const high = marketData?.fiftyTwoWeekHigh;
+  const low = marketData?.fiftyTwoWeekLow;
+  if (price === null || price === undefined || high === null || high === undefined || low === null || low === undefined || high === low) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(((price - low) / (high - low)) * 100)));
+}
+
 function formatPrice(value: number | null) {
   if (value === null) {
     return "N/A";
@@ -477,22 +527,6 @@ function formatPercent(value: number | null) {
 
   const prefix = value > 0 ? "+" : "";
   return `${prefix}${value.toFixed(2)}%`;
-}
-
-function formatLargeInr(value: number | null) {
-  if (value === null) {
-    return "N/A";
-  }
-
-  if (value >= 1_00_000_00_00_000) {
-    return `₹${new Intl.NumberFormat("en-IN", {
-      maximumFractionDigits: 2,
-    }).format(value / 1_00_000_00_00_000)}L Cr`;
-  }
-
-  return `₹${new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 0,
-  }).format(value)}`;
 }
 
 function formatNumber(value: number | null) {
@@ -517,36 +551,12 @@ function formatTimestamp(value: string | null) {
   }).format(new Date(value));
 }
 
-function SectionHeading({ title }: { title: string }) {
+function SectionHeading({ title, inverted = false }: { title: string; inverted?: boolean }) {
   return (
-    <h2 className="flex items-center gap-2 font-mono text-2xl font-bold uppercase leading-none">
-      <span className="h-4 w-4 bg-black" />
+    <h2 className={`flex items-center gap-2 font-mono text-2xl font-bold uppercase leading-none ${inverted ? "text-white" : ""}`}>
+      <span className={`h-4 w-4 ${inverted ? "bg-metric-finance-accent" : "bg-black"}`} />
       {title}
     </h2>
-  );
-}
-
-function ReportSection({
-  title,
-  children,
-  accent = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  accent?: boolean;
-}) {
-  return (
-    <section className="surface relative p-4">
-      {accent ? (
-        <div className="absolute -right-4 -top-4 flex h-12 w-12 items-center justify-center border-4 border-black bg-metric-green-bright">
-          <Bolt size={22} />
-        </div>
-      ) : null}
-      <span className="mb-4 inline-block bg-black px-2 py-1 font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-finance-accent">
-        {title}
-      </span>
-      {children}
-    </section>
   );
 }
 
@@ -557,6 +567,68 @@ function AnalysisCard({ label, copy }: { label: string; copy: string }) {
         {label}
       </p>
       <p className="text-sm leading-6">{copy}</p>
+    </div>
+  );
+}
+
+function DataTile({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string;
+  tone?: "white" | "dark" | "accent";
+}) {
+  const className =
+    tone === "dark"
+      ? "border-white bg-black text-white"
+      : tone === "accent"
+        ? "border-black bg-metric-finance-accent text-black"
+        : "border-black bg-white text-black";
+
+  return (
+    <div className={`border-2 p-3 ${className}`}>
+      <p className="font-mono text-[0.65rem] font-bold uppercase tracking-[0.08em] opacity-70">
+        {label}
+      </p>
+      <p className="mt-2 font-mono text-xl font-extrabold uppercase leading-none">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function SignalTile({
+  label,
+  value,
+  meaning,
+  tone,
+}: {
+  label: string;
+  value: string;
+  meaning: string;
+  tone: "white" | "dark" | "accent";
+}) {
+  return (
+    <div
+      className={`min-h-32 border-2 border-black p-3 neo-shadow-sm ${
+        tone === "dark"
+          ? "bg-black text-white"
+          : tone === "accent"
+            ? "bg-metric-finance-accent text-black"
+            : "bg-white text-black"
+      }`}
+    >
+      <p className="font-mono text-[0.65rem] font-bold uppercase tracking-[0.08em] opacity-70">
+        {label}
+      </p>
+      <p className="mt-3 break-words font-mono text-2xl font-extrabold uppercase leading-none">
+        {value}
+      </p>
+      <p className="mt-3 text-xs font-bold uppercase leading-4 opacity-80">
+        {meaning}
+      </p>
     </div>
   );
 }
