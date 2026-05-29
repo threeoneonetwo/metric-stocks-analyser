@@ -209,7 +209,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           <div className="mt-4 grid gap-2">
             <AnalysisCard
               label="Valuation lens"
-              copy="Metric treats valuation as context, not a recommendation. A higher multiple needs stronger growth, margins, and execution to justify it; a lower multiple still needs a check on debt, earnings quality, and sector risk."
+              copy="A higher multiple needs stronger growth, margins, and execution to justify it; a lower multiple still needs a check on debt, earnings quality, and sector risk."
             />
             <AnalysisCard
               label="Current limitation"
@@ -362,8 +362,8 @@ function buildMetricBrief(input: {
     .join("; ");
 
   const base = [
-    `${input.companyName} (${input.ticker}) is being shown as a pre-buy intelligence brief, not a stock recommendation.`,
-    `Latest setup: price ${formatPrice(marketData?.price ?? null)}, day change ${formatPercent(marketData?.dayChangePercent ?? null)}, day range ${dayRange}, volume ${formatNumber(marketData?.volume ?? null)}, and 52-week range ${yearlyRange}.`,
+    `${input.companyName} (${input.ticker}) is showing ${formatPrice(marketData?.price ?? null)} with a ${formatPercent(marketData?.dayChangePercent ?? null)} latest day move.`,
+    `Latest setup: day range ${dayRange}, volume ${formatNumber(marketData?.volume ?? null)}, and 52-week range ${yearlyRange}.`,
     `Market meaning: ${input.marketRead.meaning} ${input.rangeRead.meaning} ${input.volumeRead.meaning}`,
     `Peer check: ${peerRead || "peer snapshots are unavailable"}. This shows whether today's move is company-specific or moving with close competitors.`,
     `Business context: sector ${marketData?.sector ?? "N/A"}, industry ${marketData?.industry ?? "N/A"}. Key available metrics: ${metricRead || "N/A"}.`,

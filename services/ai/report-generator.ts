@@ -69,7 +69,7 @@ export async function generateReportPayload(
     "Use six financial metric rows. Each metric row must include label, value, yoy, and median.",
     "Use exactly three peer labels: 'Target' followed by the top two direct listed competitors from the market data peers field.",
     "The executive summary should blend daily trader context and direct equity investor context: market setup, price behaviour, business quality, valuation context, peer lens, recent signals, and risks.",
-    "Do not use buy, sell, hold, accumulate, avoid, target price, or stop loss language. Explain what the data means without making a recommendation.",
+    "Avoid buy, sell, hold, accumulate, avoid, target price, and stop loss language. Explain what the data means directly without adding disclaimer-style announcements.",
   ].join("\n");
   const { object, modelId } = await generateWithModelFallback(prompt);
 
@@ -110,7 +110,7 @@ async function generateWithModelFallback(prompt: string) {
         schemaName: "MetricFinanceEquityReport",
         temperature: 0.35,
         system:
-          "You write concise pre-buy intelligence for Indian NSE and BSE listed stocks. Return only grounded, cautious analysis. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. Never give buy, sell, hold, target price, stop loss, or recommendation language. Explain what the data means. This is not financial advice.",
+          "You write concise pre-buy intelligence for Indian NSE and BSE listed stocks. Return only grounded, cautious analysis. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. Avoid buy, sell, hold, target price, stop loss, and recommendation language. Explain what the data means directly without repeating disclaimer-style wording.",
         prompt,
       });
 
