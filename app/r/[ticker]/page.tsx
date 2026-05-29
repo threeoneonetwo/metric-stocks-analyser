@@ -223,6 +223,8 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
+        <NewsSentiment signals={signals} />
+
         <section>
           <SectionHeading title="What Could Matter" />
           <div className="mt-4 grid gap-3">
@@ -691,6 +693,92 @@ function RecentSignals({
         </div>
       </div>
     </div>
+  );
+}
+
+function NewsSentiment({ signals }: { signals: TradientSignal | null }) {
+  const news = signals?.news ?? [];
+  const counts = news.reduce(
+    (acc, item) => {
+      const sentiment = item.sentiment.toLowerCase();
+      if (sentiment.includes("positive")) acc.positive += 1;
+      else if (sentiment.includes("negative")) acc.negative += 1;
+      else acc.neutral += 1;
+      return acc;
+    },
+    { positive: 0, neutral: 0, negative: 0 },
+  );
+  const total = Math.max(1, news.length);
+  const primary =
+    counts.positive > counts.negative && counts.positive >= counts.neutral
+      ? "Positive"
+      : counts.negative > counts.positive && counts.negative >= counts.neutral
+        ? "Negative"
+        : news.length
+          ? "Neutral"
+          : "No matched news";
+
+  return (
+    <section className="surface p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <SectionHeading title="News Sentiment" />
+        <span className="border-2 border-black bg-black px-2 py-1 font-mono text-[0.65rem] font-bold uppercase text-metric-finance-accent">
+          {primary}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          ["Positive", counts.positive, "bg-metric-finance-accent"],
+          ["Neutral", counts.neutral, "bg-white"],
+          ["Negative", counts.negative, "bg-metric-pink"],
+        ].map(([label, count, bg]) => (
+          <div key={label as string} className={`border-2 border-black p-3 text-center ${bg as string}`}>
+            <p className="font-mono text-[0.6rem] font-bold uppercase tracking-[0.08em]">
+              {label as string}
+            </p>
+            <p className="mt-2 text-2xl font-extrabold leading-none">{count as number}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 h-4 overflow-hidden border-2 border-black bg-white">
+        <div className="flex h-full">
+          <div
+            className="bg-metric-finance-accent"
+            style={{ width: `${(counts.positive / total) * 100}%` }}
+          />
+          <div
+            className="bg-metric-surface-variant"
+            style={{ width: `${(counts.neutral / total) * 100}%` }}
+          />
+          <div
+            className="bg-metric-pink"
+            style={{ width: `${(counts.negative / total) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2">
+        {news.length ? (
+          news.map((item) => (
+            <div key={`sentiment-${item.title}-${item.publishedAt}`} className="border-2 border-black bg-white p-3">
+              <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[0.65rem] font-bold uppercase text-metric-muted">
+                <span>{item.symbol ?? "Tradient"}</span>
+                <span>{item.sentiment}</span>
+              </div>
+              <p className="font-bold leading-6">{item.title}</p>
+              <p className="mt-1 text-sm leading-6">{item.summary}</p>
+            </div>
+          ))
+        ) : (
+          <p className="border-2 border-dashed border-black bg-white p-4 text-sm leading-6">
+            No exact company-matched headline is available in the latest Tradient batch. The brief uses price,
+            volume, peer movement, and technical signals until a matching article appears.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
