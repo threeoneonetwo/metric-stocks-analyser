@@ -24,7 +24,7 @@ export default function Home() {
           </p>
         </div>
 
-        <section id="ticker-search" className="mx-auto w-full scroll-mt-20">
+        <section id="ticker-search" className="mx-auto w-[92%] max-w-[38rem] scroll-mt-20">
           <div className="animate-entrance delay-3">
             <TickerSearch />
           </div>
