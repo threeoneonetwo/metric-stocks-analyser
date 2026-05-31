@@ -105,8 +105,8 @@ export function TickerSearch() {
       className="flex w-full flex-col gap-0 neo-shadow"
       onBlur={() => window.setTimeout(() => setIsDropdownOpen(false), 120)}
     >
-      <label className="flex min-w-0 flex-1 items-center gap-3 border-4 border-black bg-metric-finance-accent-soft px-4 py-3">
-        <Search className="shrink-0" size={20} strokeWidth={2.2} />
+      <label className="flex min-w-0 flex-1 items-center gap-3 border-4 border-black bg-metric-finance-accent-soft px-4 py-2.5">
+        <Search className="shrink-0" size={18} strokeWidth={2.2} />
         <input
           aria-label="Company name or stock ticker"
           aria-expanded={isDropdownOpen}
@@ -114,7 +114,7 @@ export function TickerSearch() {
           aria-controls="ticker-search-dropdown"
           placeholder="ENTER COMPANY OR TICKER..."
           role="combobox"
-          className="min-w-0 flex-1 bg-transparent font-mono text-sm font-bold uppercase tracking-[0.05em] text-black outline-none placeholder:text-metric-blue"
+          className="min-w-0 flex-1 bg-transparent font-mono text-xs font-bold uppercase tracking-[0.05em] text-black outline-none placeholder:text-metric-blue"
           name={queryField.name}
           ref={queryField.ref}
           onBlur={queryField.onBlur}
@@ -191,7 +191,7 @@ export function TickerSearch() {
         </div>
       ) : null}
       <button
-        className="neo-press border-4 border-t-0 border-black bg-black px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white disabled:cursor-wait disabled:opacity-70"
+        className="neo-press border-4 border-t-0 border-black bg-black px-8 py-3.5 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white disabled:cursor-wait disabled:opacity-70"
         disabled={form.formState.isSubmitting}
       >
         {form.formState.isSubmitting ? "Finding..." : "Analyze"}
