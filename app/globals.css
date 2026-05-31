@@ -187,6 +187,11 @@ input {
   border: 2px solid var(--metric-surface-variant);
 }
 
+.mover-list-track {
+  animation: moverTicker 34s linear infinite;
+  will-change: transform;
+}
+
 @media (hover: hover) and (pointer: fine) {
   :where(a, button, label, tr, .surface, .neo-shadow, .neo-shadow-sm, article > section, main > section > section) {
     transition:
@@ -280,6 +285,16 @@ input {
   }
 }
 
+@keyframes moverTicker {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @keyframes scan {
   from {
     background-position: 200% 0;
@@ -306,6 +321,7 @@ input {
 @media (prefers-reduced-motion: reduce) {
   body::before,
   .scan-fill,
+  .mover-list-track,
   .animate-entrance {
     animation: none !important;
     opacity: 1 !important;

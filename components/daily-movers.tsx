@@ -1,0 +1,140 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Mover = {
+  ticker: string;
+  companyName: string;
+  price: number | null;
+  changePercent: number;
+  source: string;
+  asOf: string | null;
+};
+
+const fallbackMovers: Mover[] = [
+  { ticker: "TATAMOTORS", companyName: "Tata Motors", price: null, changePercent: 2.45, source: "fallback", asOf: null },
+  { ticker: "BHARTIARTL", companyName: "Bharti Airtel", price: null, changePercent: 1.12, source: "fallback", asOf: null },
+  { ticker: "ZOMATO", companyName: "Zomato", price: null, changePercent: -0.84, source: "fallback", asOf: null },
+  { ticker: "RELIANCE", companyName: "Reliance Industries", price: null, changePercent: 0.78, source: "fallback", asOf: null },
+  { ticker: "HDFCBANK", companyName: "HDFC Bank", price: null, changePercent: -0.66, source: "fallback", asOf: null },
+  { ticker: "ICICIBANK", companyName: "ICICI Bank", price: null, changePercent: 0.61, source: "fallback", asOf: null },
+  { ticker: "INFY", companyName: "Infosys", price: null, changePercent: -0.58, source: "fallback", asOf: null },
+  { ticker: "TCS", companyName: "Tata Consultancy Services", price: null, changePercent: 0.51, source: "fallback", asOf: null },
+  { ticker: "MARUTI", companyName: "Maruti Suzuki", price: null, changePercent: 0.49, source: "fallback", asOf: null },
+  { ticker: "ITC", companyName: "ITC", price: null, changePercent: -0.42, source: "fallback", asOf: null },
+];
+
+export function DailyMovers() {
+  const [movers, setMovers] = useState<Mover[]>(fallbackMovers);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadMovers() {
+      try {
+        const response = await fetch("/api/movers", { signal: controller.signal });
+        const payload = (await response.json()) as { movers?: Mover[] };
+        if (payload.movers?.length) {
+          setMovers(payload.movers);
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setMovers(fallbackMovers);
+        }
+      }
+    }
+
+    void loadMovers();
+
+    return () => controller.abort();
+  }, []);
+
+  return (
+    <section className="animate-entrance delay-4 mx-auto w-[92%] max-w-[38rem]">
+      <div className="mb-4 text-center">
+        <h2 className="text-[22px] font-black leading-none tracking-[-0.02em] text-black">
+          Biggest movers of the day
+        </h2>
+      </div>
+
+      <div className="-mx-1 overflow-hidden px-1 pb-3">
+        <div className="mover-list-track flex w-max gap-3">
+          {[...movers, ...movers].map((mover, index) => (
+            <MoverCard key={`${mover.ticker}-${index}`} mover={mover} rank={(index % movers.length) + 1} />
+          ))}
+        </div>
+      </div>
+
+      <a
+        href="#ticker-search"
+        className="neo-press mx-auto mt-6 block w-[72%] border-4 border-black bg-black px-5 py-3 text-center font-mono text-sm font-bold uppercase tracking-[0.05em] text-white"
+      >
+        Analyse now
+      </a>
+    </section>
+  );
+}
+
+function MoverCard({ mover, rank }: { mover: Mover; rank: number }) {
+  const isUp = mover.changePercent >= 0;
+  const shortName = cleanCompanyName(mover.companyName);
+
+  return (
+    <Link
+      href={`/analyze/${encodeURIComponent(mover.ticker)}`}
+      className="neo-press relative block min-h-[184px] w-[132px] shrink-0 snap-start border-4 border-black bg-white p-2.5 text-black neo-shadow-sm"
+    >
+      <div className={`absolute right-2.5 top-3 font-mono text-[10px] font-black ${isUp ? "text-metric-green" : "text-metric-red"}`}>
+        {isUp ? "▲" : "▼"} {Math.abs(mover.changePercent).toFixed(2)}%
+      </div>
+
+      <div className="mb-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-black bg-metric-finance-accent-soft text-xs font-black uppercase leading-none text-black">
+          {logoText(mover.ticker)}
+        </div>
+      </div>
+
+      <p className="font-mono text-[9px] font-black uppercase leading-3 tracking-[0.03em] text-black">
+        {rank.toString().padStart(2, "0")} {mover.ticker}
+      </p>
+      <p className="mb-3 line-clamp-2 min-h-8 text-[10px] font-bold uppercase leading-4 tracking-[0.01em] text-metric-muted">
+        {shortName}
+      </p>
+
+      <div className="overflow-hidden border-2 border-black bg-metric-finance-bg">
+        <MiniChart isUp={isUp} seed={rank} />
+      </div>
+    </Link>
+  );
+}
+
+function MiniChart({ isUp, seed }: { isUp: boolean; seed: number }) {
+  const points = buildPoints(isUp, seed);
+  const area = `${points} 140,58 0,58`;
+
+  return (
+    <svg aria-hidden="true" className="h-14 w-[140px] shrink-0" viewBox="0 0 140 58">
+      <polygon points={area} fill={isUp ? "rgba(79,143,198,0.18)" : "rgba(186,26,26,0.15)"} />
+      <polyline points={points} fill="none" stroke={isUp ? "var(--metric-green)" : "var(--metric-red)"} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="3" />
+    </svg>
+  );
+}
+
+function buildPoints(isUp: boolean, seed: number) {
+  const values = Array.from({ length: 8 }, (_, index) => {
+    const slope = isUp ? index * 3.2 : 22 - index * 2.2;
+    const wave = Math.sin((index + seed) * 1.4) * 7;
+    return Math.max(8, Math.min(50, 38 - slope + wave));
+  });
+
+  return values.map((value, index) => `${index * 20},${value.toFixed(1)}`).join(" ");
+}
+
+function cleanCompanyName(name: string) {
+  return name.replace(/\b(limited|ltd\.?|company)\b/gi, "").replace(/\s+/g, " ").trim();
+}
+
+function logoText(ticker: string) {
+  return ticker.replace(/[^A-Z0-9]/g, "").slice(0, 2);
+}
