@@ -99,6 +99,13 @@ export function TickerSearch() {
     router.push(`/analyze/${ticker}`);
   }
 
+  function closeSuggestions() {
+    setIsDropdownOpen(false);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }
+
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
@@ -142,7 +149,7 @@ export function TickerSearch() {
               type="button"
               aria-label="Close search suggestions"
               className="neo-press flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black bg-white text-black hover:bg-metric-finance-accent-soft"
-              onClick={() => setIsDropdownOpen(false)}
+              onClick={closeSuggestions}
             >
               <X size={16} strokeWidth={2.8} />
             </button>
