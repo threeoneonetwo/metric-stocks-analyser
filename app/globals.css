@@ -83,7 +83,7 @@ body > main::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.55) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.275) 1px, transparent 1px);
   background-size: 24px 24px;
   animation: backgroundDrift 60s linear infinite;
   z-index: -1;
@@ -129,7 +129,7 @@ input {
 }
 
 .terminal-grid {
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.45) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.225) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
