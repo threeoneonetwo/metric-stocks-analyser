@@ -108,7 +108,6 @@ export function TickerSearch() {
       <label className="flex min-w-0 flex-1 items-center gap-3 border-4 border-black bg-metric-finance-accent-soft px-4 py-3">
         <Search className="shrink-0" size={20} strokeWidth={2.2} />
         <input
-          autoFocus
           aria-label="Company name or stock ticker"
           aria-expanded={isDropdownOpen}
           aria-haspopup="listbox"
