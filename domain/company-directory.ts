@@ -97,6 +97,13 @@ const companies: CompanyAlias[] = [
     industry: "Auto Manufacturers",
   },
   {
+    ticker: "HYUNDAI",
+    companyName: "Hyundai Motor India Limited",
+    aliases: ["hyundai", "hyundai motor", "hyundai motors", "hyundai india", "hyundai motor india", "hyundai motor india limited"],
+    sector: "Consumer Cyclical",
+    industry: "Auto Manufacturers",
+  },
+  {
     ticker: "MARUTI",
     companyName: "Maruti Suzuki India Limited",
     aliases: ["maruti", "maruti suzuki", "maruti suzuki india", "maruti suzuki india limited"],
@@ -167,6 +174,51 @@ export function resolveKnownCompany(query: string): MarketSymbol | null {
   }
 
   return null;
+}
+
+export function searchKnownCompanies(query: string, limit = 8): MarketSymbol[] {
+  const normalizedQuery = normalizeCompanyQuery(query);
+  const tickerQuery = normalizeTicker(query);
+
+  if (!normalizedQuery && !tickerQuery) {
+    return [];
+  }
+
+  return companies
+    .map((company) => {
+      const normalizedTicker = normalizeTicker(company.ticker);
+      const normalizedName = normalizeCompanyQuery(company.companyName);
+      const aliases = company.aliases.map(normalizeCompanyQuery);
+      const exact =
+        normalizedTicker === tickerQuery ||
+        normalizedName === normalizedQuery ||
+        aliases.some((alias) => alias === normalizedQuery);
+      const startsWith =
+        normalizedTicker.startsWith(tickerQuery) ||
+        normalizedName.startsWith(normalizedQuery) ||
+        aliases.some((alias) => alias.startsWith(normalizedQuery));
+      const includes =
+        normalizedName.includes(normalizedQuery) ||
+        aliases.some((alias) => alias.includes(normalizedQuery));
+      const nearestDistance = Math.min(
+        levenshtein(normalizedQuery, normalizedName),
+        ...aliases.map((alias) => levenshtein(normalizedQuery, alias)),
+      );
+
+      let score = 0;
+      if (exact) score += 100;
+      if (startsWith) score += 60;
+      if (includes) score += 30;
+      if (nearestDistance <= Math.max(1, Math.floor(normalizedQuery.length * 0.2))) {
+        score += 20 - nearestDistance;
+      }
+
+      return { company, score };
+    })
+    .filter((result) => result.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, limit)
+    .map((result) => toMarketSymbol(result.company));
 }
 
 function toMarketSymbol(company: CompanyAlias): MarketSymbol {

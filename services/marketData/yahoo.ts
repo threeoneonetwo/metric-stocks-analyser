@@ -172,6 +172,40 @@ export async function resolveYahooSymbol(query: string): Promise<Result<MarketSy
   };
 }
 
+export async function searchYahooSymbols(query: string, limit = 8): Promise<Result<MarketSymbol[]>> {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    return { ok: true, data: [] };
+  }
+
+  const search = await getYahooSearch(trimmedQuery);
+  if (!search.ok) {
+    return search;
+  }
+
+  const seen = new Set<string>();
+  const matches = (search.data.quotes ?? [])
+    .filter(isIndianEquity)
+    .filter((quote) => {
+      if (!quote.symbol || seen.has(quote.symbol)) {
+        return false;
+      }
+      seen.add(quote.symbol);
+      return true;
+    })
+    .slice(0, limit)
+    .map((quote) => ({
+      ticker: tickerFromYahooSymbol(quote.symbol ?? ""),
+      symbol: quote.symbol ?? "",
+      companyName: quote.longname ?? quote.shortname ?? tickerFromYahooSymbol(quote.symbol ?? ""),
+      exchange: quote.symbol?.endsWith(".BO") ? ("BSE" as const) : ("NSE" as const),
+      sector: quote.sectorDisp ?? quote.sector ?? null,
+      industry: quote.industryDisp ?? quote.industry ?? null,
+    }));
+
+  return { ok: true, data: matches };
+}
+
 function isIndianEquity(quote: NonNullable<YahooSearchResponse["quotes"]>[number]) {
   return (
     quote.quoteType === "EQUITY" &&

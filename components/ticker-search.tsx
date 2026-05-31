@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Clock3, Search, Sparkles, TrendingUp, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,37 +12,73 @@ const tickerSchema = z.object({
 });
 
 type TickerForm = z.infer<typeof tickerSchema>;
+type SearchSuggestion = {
+  ticker: string;
+  symbol?: string;
+  companyName?: string;
+  name?: string;
+  exchange?: "NSE" | "BSE";
+  sector?: string | null;
+  industry?: string | null;
+  meta?: string;
+  source?: "static" | "live";
+};
 
-const searchSuggestions = [
-  { ticker: "RELIANCE", name: "Reliance Industries", meta: "Most searched" },
-  { ticker: "HDFCBANK", name: "HDFC Bank", meta: "Banking" },
-  { ticker: "TCS", name: "Tata Consultancy Services", meta: "IT services" },
-  { ticker: "INFY", name: "Infosys", meta: "IT services" },
-  { ticker: "TATAMOTORS", name: "Tata Motors", meta: "Autos" },
-  { ticker: "BHARTIARTL", name: "Bharti Airtel", meta: "Telecom" },
+const searchSuggestions: SearchSuggestion[] = [
+  { ticker: "RELIANCE", name: "Reliance Industries", meta: "Most searched", source: "static" },
+  { ticker: "HDFCBANK", name: "HDFC Bank", meta: "Banking", source: "static" },
+  { ticker: "TCS", name: "Tata Consultancy Services", meta: "IT services", source: "static" },
+  { ticker: "INFY", name: "Infosys", meta: "IT services", source: "static" },
+  { ticker: "TATAMOTORS", name: "Tata Motors", meta: "Autos", source: "static" },
+  { ticker: "BHARTIARTL", name: "Bharti Airtel", meta: "Telecom", source: "static" },
 ];
 
 export function TickerSearch() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [liveSuggestions, setLiveSuggestions] = useState<SearchSuggestion[]>([]);
+  const [searchState, setSearchState] = useState<"idle" | "loading" | "ready">("idle");
   const form = useForm<TickerForm>({
     resolver: zodResolver(tickerSchema),
     defaultValues: { query: "" },
   });
   const query = form.watch("query").trim();
-  const filteredSuggestions = useMemo(() => {
-    const normalizedQuery = query.toLowerCase();
+  const visibleSuggestions = query ? liveSuggestions : searchSuggestions;
+  const queryField = form.register("query");
 
-    if (!normalizedQuery) {
-      return searchSuggestions;
+  useEffect(() => {
+    if (query.length < 2) {
+      setLiveSuggestions([]);
+      setSearchState("idle");
+      return;
     }
 
-    return searchSuggestions.filter((item) => {
-      const searchable = `${item.ticker} ${item.name}`.toLowerCase();
-      return searchable.includes(normalizedQuery);
-    });
+    const controller = new AbortController();
+    setSearchState("loading");
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/resolve?query=${encodeURIComponent(query)}&suggest=1`, {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as {
+          results?: SearchSuggestion[];
+        };
+
+        setLiveSuggestions((payload.results ?? []).map((item) => ({ ...item, source: "live" })));
+        setSearchState("ready");
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setLiveSuggestions([]);
+          setSearchState("ready");
+        }
+      }
+    }, 220);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
   }, [query]);
-  const queryField = form.register("query");
 
   async function onSubmit(values: TickerForm) {
     const query = values.query.trim();
@@ -101,7 +137,7 @@ export function TickerSearch() {
           <div className="flex items-center justify-between gap-3 border-b-2 border-black bg-metric-surface-variant px-4 py-3">
             <div className="flex min-w-0 items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-muted">
               <TrendingUp size={16} strokeWidth={2.4} />
-              Trending searches
+              {query ? "Matching stocks" : "Trending searches"}
             </div>
             <button
               type="button"
@@ -113,10 +149,14 @@ export function TickerSearch() {
             </button>
           </div>
           <div className="search-dropdown-list grid overflow-y-auto">
-            {filteredSuggestions.length > 0 ? (
-              filteredSuggestions.map((item, index) => (
+            {searchState === "loading" ? (
+              <div className="px-4 py-5 font-mono text-xs font-bold uppercase leading-5 tracking-[0.06em] text-metric-muted">
+                Searching NSE/BSE stocks...
+              </div>
+            ) : visibleSuggestions.length > 0 ? (
+              visibleSuggestions.map((item, index) => (
                 <button
-                  key={item.ticker}
+                  key={`${item.symbol ?? item.ticker}-${index}`}
                   type="button"
                   role="option"
                   aria-selected="false"
@@ -134,18 +174,18 @@ export function TickerSearch() {
                         {item.ticker}
                       </span>
                       <span className="block truncate text-xs font-bold uppercase tracking-[0.04em] text-metric-muted">
-                        {item.name}
+                        {item.companyName ?? item.name}
                       </span>
                     </span>
                   </span>
                   <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-metric-blue">
-                    {item.meta}
+                    {item.meta ?? item.sector ?? item.exchange ?? "NSE/BSE"}
                   </span>
                 </button>
               ))
             ) : (
               <div className="px-4 py-5 font-mono text-xs font-bold uppercase leading-5 tracking-[0.06em] text-metric-muted">
-                Press analyze to resolve this company name.
+                No matched listed stock yet. Press analyze to try the closest match.
               </div>
             )}
           </div>
