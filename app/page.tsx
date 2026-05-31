@@ -14,7 +14,7 @@ export default function Home() {
             <span className="block whitespace-nowrap text-[40px]">Analyse Indian</span>
             <span className="block whitespace-nowrap text-[40px]">stocks in seconds</span>
           </h1>
-          <p className="animate-entrance delay-2 max-w-full text-[clamp(13px,3.55vw,18px)] leading-7">
+          <p className="animate-entrance delay-2 max-w-full text-[clamp(13px,3.55vw,15px)] leading-7">
             <span className="block whitespace-nowrap">
               Our agentic engine monitors the Indian equity
             </span>
