@@ -11,8 +11,8 @@ export default function Home() {
             className="animate-entrance delay-1 text-[clamp(1.95rem,7.2vw,2.75rem)] font-black leading-[0.98] text-black [text-shadow:0.35px_0_0_#000,-0.35px_0_0_#000]"
             style={{ fontWeight: 900 }}
           >
-            <span className="block whitespace-nowrap">Analyse Indian stocks</span>
-            <span className="block whitespace-nowrap">in seconds</span>
+            <span className="block whitespace-nowrap">Analyse Indian</span>
+            <span className="block whitespace-nowrap">stocks in seconds</span>
           </h1>
           <p className="animate-entrance delay-2 max-w-[32rem] text-base leading-6">
             Our advanced agentic engine monitors the Indian equity market to
