@@ -6,7 +6,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col">
       <TopBar />
       <section className="mx-auto flex w-full max-w-[42rem] flex-1 -translate-y-12 flex-col justify-center gap-[32px] px-4 py-10 sm:px-6">
-        <div className="flex flex-col items-center gap-[10px] text-center">
+        <div className="flex flex-col items-center gap-[15px] text-center">
           <h1
             className="animate-entrance delay-1 font-black leading-[1.02] text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
             style={{ fontWeight: 900 }}
