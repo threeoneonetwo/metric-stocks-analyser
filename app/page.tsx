@@ -1,5 +1,4 @@
 import Link from "next/link";
-import coldStartTickers from "@/data/coldStartTickers.json";
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { TickerSearch } from "@/components/ticker-search";
 
@@ -26,22 +25,9 @@ export default function Home() {
           </p>
         </div>
 
-        <section id="ticker-search" className="scroll-mt-20 flex flex-col gap-4">
+        <section id="ticker-search" className="scroll-mt-20">
           <div className="animate-entrance delay-3">
             <TickerSearch />
-          </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            {coldStartTickers.map((item, index) => (
-              <Link
-                key={item.ticker}
-                href={`/analyze/${item.ticker}`}
-                className="neo-press border-2 border-black bg-white px-2 py-1 font-mono text-xs font-bold uppercase tracking-[0.08em] neo-shadow-sm transition hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-metric-green-bright"
-                title={item.name}
-                style={{ animationDelay: `${0.4 + index * 0.06}s` }}
-              >
-                {item.ticker}
-              </Link>
-            ))}
           </div>
         </section>
 

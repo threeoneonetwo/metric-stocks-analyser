@@ -160,6 +160,33 @@ input {
   transform: translate(4px, 4px);
 }
 
+.search-dropdown {
+  animation: dropdownOpen 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: top center;
+  will-change: opacity, transform, clip-path;
+}
+
+.search-dropdown-list {
+  max-height: min(24rem, 46vh);
+  overscroll-behavior: contain;
+  scrollbar-color: var(--metric-black) var(--metric-surface-variant);
+  scrollbar-width: thin;
+}
+
+.search-dropdown-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.search-dropdown-list::-webkit-scrollbar-track {
+  background: var(--metric-surface-variant);
+  border-left: 2px solid var(--metric-black);
+}
+
+.search-dropdown-list::-webkit-scrollbar-thumb {
+  background: var(--metric-black);
+  border: 2px solid var(--metric-surface-variant);
+}
+
 @media (hover: hover) and (pointer: fine) {
   :where(a, button, label, tr, .surface, .neo-shadow, .neo-shadow-sm, article > section, main > section > section) {
     transition:
@@ -237,6 +264,19 @@ input {
   }
   to {
     background-position: 100% 100%;
+  }
+}
+
+@keyframes dropdownOpen {
+  from {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.96);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
   }
 }
 
