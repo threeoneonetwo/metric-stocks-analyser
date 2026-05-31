@@ -8,7 +8,7 @@ export default function Home() {
       <section className="mx-auto flex w-full max-w-[42rem] flex-1 flex-col gap-10 px-4 py-10 sm:px-6">
         <div className="flex flex-col items-center gap-6 text-center">
           <h1
-            className="animate-entrance delay-1 text-[2.38rem] font-black leading-[0.98] text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000] min-[390px]:text-[2.55rem] sm:text-[2.75rem]"
+            className="animate-entrance delay-1 text-[clamp(1.95rem,7.2vw,2.75rem)] font-black leading-[0.98] text-black [text-shadow:0.35px_0_0_#000,-0.35px_0_0_#000]"
             style={{ fontWeight: 900 }}
           >
             <span className="block whitespace-nowrap">Analyse Indian stocks</span>
