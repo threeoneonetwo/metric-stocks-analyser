@@ -69,12 +69,6 @@ export function DailyMovers() {
         </div>
       </div>
 
-      <a
-        href="#ticker-search"
-        className="neo-press mx-auto mt-[5px] block w-[58%] max-w-[14rem] border-4 border-black bg-black px-5 py-3 text-center font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white"
-      >
-        Analyse now
-      </a>
     </section>
   );
 }
