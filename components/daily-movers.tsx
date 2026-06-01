@@ -51,14 +51,17 @@ export function DailyMovers() {
   }, []);
 
   return (
-    <section className="animate-entrance delay-4 mx-auto w-[92%] max-w-[38rem]">
-      <div className="mb-4 text-center">
-        <h2 className="text-[22px] font-black leading-none tracking-[-0.02em] text-black">
+    <section className="animate-entrance delay-4 -mx-4 w-[calc(100%+2rem)] sm:-mx-6 sm:w-[calc(100%+3rem)]">
+      <div className="mb-[18px] text-center">
+        <h2
+          className="text-[25px] font-black leading-none tracking-[-0.02em] text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
+          style={{ fontWeight: 900 }}
+        >
           Biggest movers of the day
         </h2>
       </div>
 
-      <div className="-mx-1 overflow-hidden px-1 pb-3">
+      <div className="overflow-hidden px-1 pb-3">
         <div className="mover-list-track flex w-max gap-3">
           {[...movers, ...movers].map((mover, index) => (
             <MoverCard key={`${mover.ticker}-${index}`} mover={mover} rank={(index % movers.length) + 1} />
@@ -68,7 +71,7 @@ export function DailyMovers() {
 
       <a
         href="#ticker-search"
-        className="neo-press mx-auto mt-6 block w-[72%] border-4 border-black bg-black px-5 py-3 text-center font-mono text-sm font-bold uppercase tracking-[0.05em] text-white"
+        className="neo-press mx-auto mt-[5px] block w-[58%] max-w-[14rem] border-4 border-black bg-black px-5 py-3 text-center font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white"
       >
         Analyse now
       </a>
