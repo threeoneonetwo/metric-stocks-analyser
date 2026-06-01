@@ -35,7 +35,15 @@ const sectorFallbacks: Record<string, [string, string]> = {
   industrials: ["LT", "SIEMENS"],
 };
 
-const genericPeerLabels = new Set(["PEER A", "PEER B", "PEER C", "NIFTY 50", "SECTOR MEDIAN", "PEER MEDIAN"]);
+const genericPeerLabels = new Set([
+  "TARGET",
+  "PEER A",
+  "PEER B",
+  "PEER C",
+  "NIFTY 50",
+  "SECTOR MEDIAN",
+  "PEER MEDIAN",
+]);
 
 export function getPeerComparisonLabels(input: {
   ticker: string;
@@ -44,7 +52,7 @@ export function getPeerComparisonLabels(input: {
 }) {
   const ticker = normalizeTicker(input.ticker);
   const competitors = competitorMap[ticker] ?? findSectorFallback(input.industry) ?? findSectorFallback(input.sector);
-  return ["Target", ...(competitors ?? ["NIFTY 50", "Sector Median"])];
+  return [ticker, ...(competitors ?? ["NIFTY 50", "Sector Median"])];
 }
 
 export function shouldReplacePeerLabels(peers: string[] | undefined) {
