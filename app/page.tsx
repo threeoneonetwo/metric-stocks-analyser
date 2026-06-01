@@ -30,7 +30,7 @@ export default function Home() {
             <TickerSearch />
           </div>
         </section>
-        <div className="mt-10">
+        <div className="mt-[23px]">
           <DailyMovers />
         </div>
       </section>
