@@ -80,23 +80,25 @@ function MoverCard({ mover, rank }: { mover: Mover; rank: number }) {
   return (
     <Link
       href={`/analyze/${encodeURIComponent(mover.ticker)}`}
-      className="neo-press relative block min-h-[184px] w-[132px] shrink-0 snap-start border-4 border-black bg-white p-2.5 text-black neo-shadow-sm"
+      className="neo-press relative block min-h-[174px] w-[138px] shrink-0 snap-start border-4 border-black bg-white p-2.5 text-black neo-shadow-sm"
     >
-      <div className={`absolute right-2.5 top-3 font-mono text-[10px] font-black ${isUp ? "text-metric-green" : "text-metric-red"}`}>
-        {isUp ? "▲" : "▼"} {Math.abs(mover.changePercent).toFixed(2)}%
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <p className="font-mono text-[9px] font-black uppercase leading-3 tracking-[0.03em] text-black">
+          {rank.toString().padStart(2, "0")}
+        </p>
+        <p className={`font-mono text-[10px] font-black leading-3 ${isUp ? "text-metric-green" : "text-metric-red"}`}>
+          {isUp ? "▲" : "▼"} {Math.abs(mover.changePercent).toFixed(2)}%
+        </p>
       </div>
 
-      <div className="mb-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-black bg-metric-finance-accent-soft text-xs font-black uppercase leading-none text-black">
-          {logoText(mover.ticker)}
-        </div>
-      </div>
-
-      <p className="font-mono text-[9px] font-black uppercase leading-3 tracking-[0.03em] text-black">
-        {rank.toString().padStart(2, "0")} {mover.ticker}
+      <p className="font-mono text-[12px] font-black uppercase leading-4 tracking-[0.01em] text-black">
+        {mover.ticker}
       </p>
-      <p className="mb-3 line-clamp-2 min-h-8 text-[10px] font-bold uppercase leading-4 tracking-[0.01em] text-metric-muted">
+      <p className="line-clamp-2 min-h-8 text-[10px] font-bold uppercase leading-4 tracking-[0.01em] text-metric-muted">
         {shortName}
+      </p>
+      <p className="mb-2 mt-1 font-mono text-[9px] font-black uppercase leading-3 text-black">
+        {formatPrice(mover.price)}
       </p>
 
       <div className="overflow-hidden border-2 border-black bg-metric-finance-bg">
@@ -132,6 +134,12 @@ function cleanCompanyName(name: string) {
   return name.replace(/\b(limited|ltd\.?|company)\b/gi, "").replace(/\s+/g, " ").trim();
 }
 
-function logoText(ticker: string) {
-  return ticker.replace(/[^A-Z0-9]/g, "").slice(0, 2);
+function formatPrice(price: number | null) {
+  if (price === null) {
+    return "PRICE N/A";
+  }
+
+  return `₹${price.toLocaleString("en-IN", {
+    maximumFractionDigits: price >= 100 ? 0 : 2,
+  })}`;
 }
