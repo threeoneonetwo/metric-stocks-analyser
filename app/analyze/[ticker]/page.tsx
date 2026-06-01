@@ -1,4 +1,5 @@
 import { FooterBar, TopBar } from "@/components/site-chrome";
+import { AnalysisRunEvent } from "@/components/analytics-events";
 import { ensureReportForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { notFound } from "next/navigation";
@@ -23,6 +24,7 @@ export default async function AnalyzePage({ params, searchParams }: AnalyzePageP
 
   return (
     <main className="min-h-screen pb-14">
+      <AnalysisRunEvent ticker={normalizedTicker} companyName={displayName} refresh={refresh === "1"} />
       <TopBar />
       <LoadingView ticker={normalizedTicker} companyName={displayName} />
       <FooterBar />

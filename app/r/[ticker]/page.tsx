@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { ReportViewEvent } from "@/components/analytics-events";
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/competitors";
 import { getReportViewForTicker } from "@/domain/report-cache";
@@ -77,6 +78,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
   return (
     <main className="flex min-h-screen flex-col">
+      <ReportViewEvent ticker={report.ticker} companyName={report.companyName} />
       <TopBar reportActions ticker={report.ticker} />
       <div className="sticky top-[68px] z-40 border-b-4 border-black bg-white px-4 py-3">
         <div className="mx-auto flex max-w-[42rem] items-center justify-between gap-4">
