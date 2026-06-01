@@ -51,6 +51,7 @@
 
 html {
   min-height: 100%;
+  min-height: 100dvh;
   background: var(--metric-ink);
 }
 
@@ -60,6 +61,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   font-feature-settings: "tnum", "lnum";
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 body::before {
@@ -73,6 +75,7 @@ body > main {
   margin-inline: auto;
   max-width: 430px;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   position: relative;
   width: 100%;
