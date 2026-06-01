@@ -510,9 +510,10 @@ function buildSignalTiles(input: {
   const metric = (pattern: RegExp) => input.metrics.find(([label]) => pattern.test(label));
   const valuation = metric(/p\/?e|valuation/i);
   const quality = metric(/roe|roce|margin|profit/i);
-  const debt = metric(/debt|d\/?e|risk/i);
+  const debt = metric(/debt|d\/?e|risk|quick|current ratio|interest coverage/i);
   const technical = input.signals?.technicals[0];
   const newsCount = input.signals?.news.length ?? 0;
+  const newsSignal = getNewsSentimentSummary(input.signals);
 
   return [
     {
@@ -548,7 +549,7 @@ function buildSignalTiles(input: {
     {
       label: "Debt / Risk",
       value: debt?.[1] ?? "Check",
-      meaning: debt ? `${debt[0]} vs ${debt[3]}` : "Awaiting risk feed",
+      meaning: debt ? `${debt[0]} vs ${debt[3]}` : "Needs debt metric",
       tone: "white" as const,
     },
     {
@@ -559,8 +560,8 @@ function buildSignalTiles(input: {
     },
     {
       label: "News Signal",
-      value: newsCount ? `${newsCount} item${newsCount === 1 ? "" : "s"}` : "None",
-      meaning: newsCount ? "Ticker-matched news" : "No exact match",
+      value: newsSignal.label,
+      meaning: newsCount ? `${newsSignal.detail} · ${newsCount} matched` : "No exact match",
       tone: "white" as const,
     },
   ];
@@ -768,9 +769,8 @@ function RecentSignals({
   );
 }
 
-function NewsSentiment({ signals }: { signals: TradientSignal | null }) {
-  const news = signals?.news ?? [];
-  const counts = news.reduce(
+function getNewsSentimentCounts(news: TradientSignal["news"]) {
+  return news.reduce(
     (acc, item) => {
       const sentiment = item.sentiment.toLowerCase();
       if (sentiment.includes("positive")) acc.positive += 1;
@@ -780,6 +780,41 @@ function NewsSentiment({ signals }: { signals: TradientSignal | null }) {
     },
     { positive: 0, neutral: 0, negative: 0 },
   );
+}
+
+function getNewsSentimentSummary(signals: TradientSignal | null) {
+  const news = signals?.news ?? [];
+  const counts = getNewsSentimentCounts(news);
+  if (!news.length) {
+    return {
+      label: "No News",
+      detail: "No matched headlines",
+    };
+  }
+
+  if (counts.positive > counts.negative && counts.positive >= counts.neutral) {
+    return {
+      label: "Positive",
+      detail: `${counts.positive} positive / ${counts.neutral} neutral / ${counts.negative} negative`,
+    };
+  }
+
+  if (counts.negative > counts.positive && counts.negative >= counts.neutral) {
+    return {
+      label: "Negative",
+      detail: `${counts.positive} positive / ${counts.neutral} neutral / ${counts.negative} negative`,
+    };
+  }
+
+  return {
+    label: "Neutral",
+    detail: `${counts.positive} positive / ${counts.neutral} neutral / ${counts.negative} negative`,
+  };
+}
+
+function NewsSentiment({ signals }: { signals: TradientSignal | null }) {
+  const news = signals?.news ?? [];
+  const counts = getNewsSentimentCounts(news);
   const total = Math.max(1, news.length);
   const primary =
     counts.positive > counts.negative && counts.positive >= counts.neutral
