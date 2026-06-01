@@ -1,5 +1,6 @@
 import type { MarketSymbol } from "@/services/marketData/types";
 import { normalizeTicker } from "@/lib/utils";
+import { getKnownIsin } from "./isin-directory";
 
 type CompanyAlias = {
   ticker: string;
@@ -229,6 +230,7 @@ function toMarketSymbol(company: CompanyAlias): MarketSymbol {
     exchange: "NSE",
     sector: company.sector ?? null,
     industry: company.industry ?? null,
+    isin: getKnownIsin(company.ticker),
   };
 }
 

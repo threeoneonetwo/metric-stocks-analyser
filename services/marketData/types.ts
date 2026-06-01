@@ -7,6 +7,7 @@ export type MarketSymbol = {
   exchange: "NSE" | "BSE";
   sector: string | null;
   industry: string | null;
+  isin?: string | null;
 };
 
 export type MarketSnapshot = {
@@ -32,6 +33,7 @@ export type MarketSnapshot = {
   metrics: Array<{
     label: string;
     value: string;
+    median?: string;
   }>;
 };
 

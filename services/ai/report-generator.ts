@@ -72,7 +72,7 @@ export async function generateReportPayload(
     "Do not sound like a template. Vary sentence structure. Do not repeat phrases such as 'the next question', 'this means', 'market setup', or 'before buying' across fields.",
     "Make the overview a business-quality read: what the company does, where the operating leverage or fragility is likely to sit, and what the current market data can and cannot confirm.",
     "Make the summary a single polished analyst paragraph that synthesizes price action, volume, 52-week position, valuation/quality placeholders, peer context, and news/technical signals into a coherent view.",
-    "Use six metric rows. Prefer valuation, profitability, growth, balance-sheet/risk, cash generation, and shareholder/ownership fields. Each row must include label, value, yoy, and median. Use N/A only where the supplied data cannot support a number.",
+    "Use six metric rows. If marketData.metrics contains Upstox key ratios, prioritize those exact ratio values and sector benchmark medians before using price-only fields. Each row must include label, value, yoy, and median. Use N/A only where the supplied data cannot support a number.",
     "Use exactly three peer labels: the main ticker followed by the top two direct listed competitors from the market data peers field.",
     "Avoid buy, sell, hold, accumulate, avoid, target price, stop loss, multibagger, guaranteed, and recommendation language. Do not add disclaimers. Explain implications, trade-offs, and missing evidence.",
   ].join("\n");

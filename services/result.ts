@@ -1,4 +1,4 @@
-export type ServiceErrorCode = "TIMEOUT" | "NOT_FOUND" | "UPSTREAM" | "VALIDATION";
+export type ServiceErrorCode = "TIMEOUT" | "NOT_FOUND" | "UPSTREAM" | "VALIDATION" | "CONFIG";
 
 export type Result<T> =
   | { ok: true; data: T }

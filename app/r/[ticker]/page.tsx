@@ -41,6 +41,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         industry: marketData?.industry ?? resolved.data.industry,
       })
     : report.peers;
+  const displayMetrics = getDisplayMetrics(report.metrics, marketData);
   const peerSnapshots = await getPeerSnapshots(displayPeers.slice(1));
   const marketRead = getMarketRead(marketData);
   const rangeRead = getRangeRead(marketData);
@@ -56,7 +57,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
     marketRead,
     rangeRead,
     volumeRead,
-    metrics: report.metrics,
+    metrics: displayMetrics,
     signals,
   });
 
@@ -120,7 +121,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
               marketData,
               peerLabels: displayPeers.slice(1),
               peerSnapshots,
-              metrics: report.metrics,
+              metrics: displayMetrics,
               marketRead,
               rangeRead,
               volumeRead,
@@ -174,7 +175,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
             </span>
           </div>
           <div className="grid gap-2">
-            {report.metrics.slice(0, 6).map(([label, value, yoy, median]) => (
+            {displayMetrics.slice(0, 6).map(([label, value, yoy, median]) => (
               <div key={label} className="border-2 border-black bg-white p-4 neo-shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -280,6 +281,33 @@ async function getFreshMarketData(ticker: string, symbol: string) {
   }
 
   return undefined;
+}
+
+function getDisplayMetrics(
+  reportMetrics: Array<[string, string, string, string]>,
+  marketData: MarketSnapshot | undefined,
+) {
+  const fundamentalMetrics = (marketData?.metrics ?? [])
+    .filter((metric) => metric.median && /p\/?e|p\/?b|roa|roe|roce|ev\/ebitda/i.test(metric.label))
+    .map<[string, string, string, string]>((metric) => [
+      metric.label,
+      metric.value,
+      "Current",
+      metric.median ?? "N/A",
+    ]);
+
+  if (!fundamentalMetrics.length) {
+    return reportMetrics;
+  }
+
+  const existingLabels = new Set(fundamentalMetrics.map(([label]) => normalizeMetricLabel(label)));
+  const supplementalMetrics = reportMetrics.filter(([label]) => !existingLabels.has(normalizeMetricLabel(label)));
+
+  return [...fundamentalMetrics, ...supplementalMetrics].slice(0, 6);
+}
+
+function normalizeMetricLabel(label: string) {
+  return label.toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
 async function getPeerSnapshots(peers: string[]) {

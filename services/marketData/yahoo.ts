@@ -1,5 +1,7 @@
 import type { Result } from "@/services/result";
 import { getPeerComparisonLabels } from "@/domain/competitors";
+import { getKnownIsin } from "@/domain/isin-directory";
+import { getUpstoxFundamentalsForTicker } from "@/services/fundamentals/upstox";
 import type { MarketDataService, MarketSnapshot, MarketSymbol } from "./types";
 
 type YahooSearchResponse = {
@@ -86,6 +88,17 @@ export const yahooMarketData: MarketDataService = {
         ? ((price - previousClose) / previousClose) * 100
         : null;
 
+    const priceMetrics = buildMetrics({
+      open: lastNumber(quote?.open),
+      high: meta.regularMarketDayHigh ?? lastNumber(quote?.high),
+      low: meta.regularMarketDayLow ?? lastNumber(quote?.low),
+      previousClose,
+      volume: meta.regularMarketVolume ?? lastNumber(quote?.volume),
+      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh,
+      fiftyTwoWeekLow: meta.fiftyTwoWeekLow,
+    });
+    const fundamentals = await getUpstoxFundamentalsForTicker(resolved.data.ticker);
+
     return {
       ok: true,
       data: {
@@ -112,15 +125,7 @@ export const yahooMarketData: MarketDataService = {
           sector: resolved.data.sector,
           industry: resolved.data.industry,
         }),
-        metrics: buildMetrics({
-          open: lastNumber(quote?.open),
-          high: meta.regularMarketDayHigh ?? lastNumber(quote?.high),
-          low: meta.regularMarketDayLow ?? lastNumber(quote?.low),
-          previousClose,
-          volume: meta.regularMarketVolume ?? lastNumber(quote?.volume),
-          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh,
-          fiftyTwoWeekLow: meta.fiftyTwoWeekLow,
-        }),
+        metrics: fundamentals.ok ? [...fundamentals.data.metrics, ...priceMetrics] : priceMetrics,
       },
     };
   },
@@ -160,6 +165,7 @@ export async function resolveYahooSymbol(query: string): Promise<Result<MarketSy
           exchange: match.symbol.endsWith(".BO") ? "BSE" : "NSE",
           sector: match.sectorDisp ?? match.sector ?? null,
           industry: match.industryDisp ?? match.industry ?? null,
+          isin: getKnownIsin(tickerFromYahooSymbol(match.symbol)),
         },
       };
     }
@@ -201,6 +207,7 @@ export async function searchYahooSymbols(query: string, limit = 8): Promise<Resu
       exchange: quote.symbol?.endsWith(".BO") ? ("BSE" as const) : ("NSE" as const),
       sector: quote.sectorDisp ?? quote.sector ?? null,
       industry: quote.industryDisp ?? quote.industry ?? null,
+      isin: getKnownIsin(tickerFromYahooSymbol(quote.symbol ?? "")),
     }));
 
   return { ok: true, data: matches };

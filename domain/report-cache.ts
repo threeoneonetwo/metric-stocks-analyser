@@ -149,8 +149,8 @@ function buildMarketDataReport(ticker: string, marketData: MarketSnapshot): Repo
   const metricRows = marketData.metrics.map<ReportPayload["metrics"][number]>((metric) => [
     metric.label,
     metric.value,
-    "N/A",
-    "N/A",
+    "Current",
+    metric.median ?? "N/A",
   ]);
   const paddedMetrics = [
     ...metricRows,
