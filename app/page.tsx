@@ -1,5 +1,6 @@
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { DailyMovers } from "@/components/daily-movers";
+import { HomeFaq } from "@/components/home-faq";
 import { TickerSearch } from "@/components/ticker-search";
 
 export default function Home() {
@@ -33,6 +34,7 @@ export default function Home() {
         <div className="mt-[23px]">
           <DailyMovers />
         </div>
+        <HomeFaq />
       </section>
       <FooterBar />
     </main>

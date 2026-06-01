@@ -195,6 +195,35 @@ input {
   will-change: transform;
 }
 
+.faq-trigger {
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.faq-trigger:hover {
+  background: var(--metric-finance-accent-soft);
+}
+
+.faq-answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    grid-template-rows 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.faq-answer > p {
+  overflow: hidden;
+}
+
+.faq-answer-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (hover: hover) and (pointer: fine) {
   :where(a, button, label, tr, .surface, .neo-shadow, .neo-shadow-sm, article > section, main > section > section) {
     transition:
@@ -325,9 +354,11 @@ input {
   body::before,
   .scan-fill,
   .mover-list-track,
-  .animate-entrance {
+  .animate-entrance,
+  .faq-answer {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+    transition: none !important;
   }
 }
