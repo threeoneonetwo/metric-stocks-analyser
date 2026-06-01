@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/competitors";
 import { getReportViewForTicker } from "@/domain/report-cache";
@@ -51,6 +52,19 @@ export default async function ReportPage({ params }: ReportPageProps) {
     companyName: report.companyName,
   });
   const signals = tradientSignals.ok ? tradientSignals.data : null;
+  const metricBrief = buildMetricBrief({
+    ticker: report.ticker,
+    companyName: report.companyName,
+    marketData,
+    peerLabels: displayPeers.slice(1),
+    peerSnapshots,
+    metrics: displayMetrics,
+    marketRead,
+    rangeRead,
+    volumeRead,
+    signals,
+    reportSummary: report.summary,
+  });
   const signalTiles = buildSignalTiles({
     displayDayChange,
     marketData,
@@ -115,19 +129,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
             </Link>
           </div>
           <p className="text-[0.95rem] font-medium leading-7">
-            {buildMetricBrief({
-              ticker: report.ticker,
-              companyName: report.companyName,
-              marketData,
-              peerLabels: displayPeers.slice(1),
-              peerSnapshots,
-              metrics: displayMetrics,
-              marketRead,
-              rangeRead,
-              volumeRead,
-              signals,
-              reportSummary: report.summary,
-            })}
+            {metricBrief}
           </p>
         </section>
 
@@ -229,18 +231,21 @@ export default async function ReportPage({ params }: ReportPageProps) {
         <section>
           <SectionHeading title="What Could Matter" />
           <div className="mt-4 grid gap-3">
-            {[
-              [AlertTriangle, "Valuation risk", "A higher multiple needs stronger growth, margins, and execution to justify it.", "bg-metric-red"],
-              [TrendingDown, "Earnings risk", "Business quality and price action need to be read with fresh quarterly fundamentals once connected.", "bg-metric-pink"],
-              [Bolt, "Market timing", `Fresh snapshot: ${formatTimestamp(marketData?.asOf ?? null)}. Short-term setups can change quickly around news, volume, and peer moves.`, "bg-metric-green"],
-            ].map(([Icon, title, copy, stripe]) => (
-              <div key={title as string} className="relative overflow-hidden border-2 border-black bg-white p-4 neo-shadow-sm">
-                <div className={`absolute right-0 top-0 h-full w-2 ${stripe as string}`} />
+            {buildRiskCards({
+              marketData,
+              marketRead,
+              rangeRead,
+              volumeRead,
+              metrics: displayMetrics,
+              signals,
+            }).map(({ Icon, title, copy, stripe }) => (
+              <div key={title} className="relative overflow-hidden border-2 border-black bg-white p-4 neo-shadow-sm">
+                <div className={`absolute right-0 top-0 h-full w-2 ${stripe}`} />
                 <div className="mb-2 flex items-center gap-2">
                   <Icon className="text-black" size={20} strokeWidth={2.2} />
-                  <h3 className="font-mono text-sm font-bold uppercase">{title as string}</h3>
+                  <h3 className="font-mono text-sm font-bold uppercase">{title}</h3>
                 </div>
-                <p className="text-sm leading-6">{copy as string}</p>
+                <p className="text-sm leading-6">{copy}</p>
               </div>
             ))}
           </div>
@@ -249,8 +254,15 @@ export default async function ReportPage({ params }: ReportPageProps) {
         <section className="border-4 border-black bg-black p-6 text-white neo-shadow">
           <SectionHeading title="What This Means" inverted />
           <p className="mt-4 text-sm leading-6 text-metric-surface-dim">
-            {marketRead.meaning} {rangeRead.meaning} The peer lens and recent
-            signals explain whether the setup is stock-specific or sector-wide.
+            {buildWhatThisMeans({
+              marketData,
+              marketRead,
+              rangeRead,
+              volumeRead,
+              metrics: displayMetrics,
+              signals,
+              metricBrief,
+            })}
           </p>
           <button className="neo-press mt-6 inline-flex w-full items-center justify-center gap-2 border-4 border-black bg-metric-finance-accent px-8 py-4 font-mono text-sm font-extrabold uppercase tracking-[0.05em] text-black neo-shadow">
             <Share2 size={18} /> Share Report
@@ -288,7 +300,7 @@ function getDisplayMetrics(
   marketData: MarketSnapshot | undefined,
 ) {
   const fundamentalMetrics = (marketData?.metrics ?? [])
-    .filter((metric) => metric.median && /p\/?e|p\/?b|roa|roe|roce|ev\/ebitda/i.test(metric.label))
+    .filter((metric) => metric.median && /p\/?e|p\/?b|roa|roe|roce|ev\/ebitda|quick|current ratio|debt|d\/?e|interest coverage/i.test(metric.label))
     .map<[string, string, string, string]>((metric) => [
       metric.label,
       metric.value,
@@ -388,6 +400,145 @@ function buildMetricBrief(input: {
     .join(" ");
 }
 
+function buildRiskCards(input: {
+  marketData: MarketSnapshot | undefined;
+  marketRead: AnalysisRead;
+  rangeRead: AnalysisRead;
+  volumeRead: AnalysisRead;
+  metrics: Array<[string, string, string, string]>;
+  signals: TradientSignal | null;
+}): Array<{
+  Icon: LucideIcon;
+  title: string;
+  copy: string;
+  stripe: string;
+}> {
+  const valuation = getMetricTuple(input.metrics, /p\/?e|p\/?b|ev\/?ebitda|valuation/i);
+  const quality = getMetricTuple(input.metrics, /roe|roce|margin|profit|quality/i);
+  const balanceSheet = getMetricTuple(input.metrics, /debt|d\/?e|risk|quick|current ratio|interest coverage/i);
+  const newsSignal = getNewsSentimentSummary(input.signals);
+
+  return [
+    {
+      Icon: AlertTriangle,
+      title: "Valuation risk",
+      copy: valuation
+        ? buildMetricComparisonCopy(
+            valuation,
+            "Valuation check",
+            "If the market is paying above the sector benchmark, the company needs growth, margins, or earnings visibility to carry that premium.",
+          )
+        : `${input.rangeRead.meaning} Without a valuation ratio in the current feed, price location and peer movement carry more weight than multiple-based judgement.`,
+      stripe: "bg-metric-red",
+    },
+    {
+      Icon: TrendingDown,
+      title: "Earnings risk",
+      copy: quality
+        ? buildMetricComparisonCopy(
+            quality,
+            "Quality check",
+            "The risk is whether profitability can keep supporting the move once quarterly earnings, margins, and cash conversion update.",
+          )
+        : `${input.marketRead.meaning} Profitability ratios are not complete in this snapshot, so the next read should lean on results, margin commentary, and peer execution.`,
+      stripe: "bg-metric-pink",
+    },
+    {
+      Icon: Bolt,
+      title: "Market timing",
+      copy: [
+        `Fresh snapshot: ${formatTimestamp(input.marketData?.asOf ?? null)}.`,
+        input.volumeRead.meaning,
+        balanceSheet ? `Balance-sheet check: ${balanceSheet[0]} is ${balanceSheet[1]} versus sector median ${balanceSheet[3]}.` : null,
+        newsSignal.label !== "No News" ? `News tone is ${newsSignal.label.toLowerCase()} (${newsSignal.detail}).` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      stripe: "bg-metric-green",
+    },
+  ];
+}
+
+function buildWhatThisMeans(input: {
+  marketData: MarketSnapshot | undefined;
+  marketRead: AnalysisRead;
+  rangeRead: AnalysisRead;
+  volumeRead: AnalysisRead;
+  metrics: Array<[string, string, string, string]>;
+  signals: TradientSignal | null;
+  metricBrief: string;
+}) {
+  const valuation = getMetricSignal(input.metrics, /p\/?e|valuation|ev/i);
+  const quality = getMetricSignal(input.metrics, /roe|roce|margin|profit|quality/i);
+  const balanceSheet = getMetricSignal(input.metrics, /debt|d\/?e|risk|quick|current ratio|interest coverage/i);
+  const newsSignal = getNewsSentimentSummary(input.signals);
+  const technical = input.signals?.technicals[0];
+  const fundamentals = [
+    valuation ? `valuation reads as ${valuation}` : null,
+    quality ? `quality reads as ${quality}` : null,
+    balanceSheet ? `risk/liquidity reads as ${balanceSheet}` : null,
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  if (fundamentals || technical || newsSignal.label !== "No News") {
+    return [
+      input.marketRead.meaning,
+      input.rangeRead.meaning,
+      fundamentals ? `The fundamental layer says ${fundamentals}.` : null,
+      technical ? `The technical layer adds ${technical.label} at ${technical.value}: ${technical.meaning}` : null,
+      newsSignal.label !== "No News" ? `The news layer is ${newsSignal.label.toLowerCase()} with ${newsSignal.detail}.` : null,
+      "Together, the point is to read price, quality, balance-sheet strength, and news flow as one setup rather than treating any single number as the answer.",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return input.metricBrief;
+}
+
+function getMetricTuple(metrics: Array<[string, string, string, string]>, pattern: RegExp) {
+  const metric = metrics.find(([label, value]) => pattern.test(label) && value !== "N/A");
+  return metric ?? null;
+}
+
+function buildMetricComparisonCopy(
+  metric: [string, string, string, string],
+  prefix: string,
+  implication: string,
+) {
+  const [label, value, yoy, median] = metric;
+  const comparison = getMetricComparison(value, median);
+  const movement = isMeaningfulMetricMovement(yoy) ? ` ${yoy} YoY.` : "";
+  return `${prefix}: ${label} is ${value}${median && median !== "N/A" ? ` versus sector median ${median}` : ""}${comparison}.${movement} ${implication}`;
+}
+
+function getMetricComparison(value: string, median: string) {
+  const companyValue = parseMetricNumber(value);
+  const medianValue = parseMetricNumber(median);
+  if (companyValue === null || medianValue === null || medianValue === 0) {
+    return "";
+  }
+
+  if (medianValue < 0 && companyValue >= 0) {
+    return ", above a weak sector benchmark";
+  }
+
+  const gap = ((companyValue - medianValue) / Math.abs(medianValue)) * 100;
+  if (gap >= 15) {
+    return ", a visible premium to the benchmark";
+  }
+  if (gap <= -15) {
+    return ", a visible discount to the benchmark";
+  }
+  return ", broadly close to the benchmark";
+}
+
+function parseMetricNumber(value: string) {
+  const parsed = Number.parseFloat(value.replace(/,/g, "").replace(/%/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function getMetricSignal(metrics: Array<[string, string, string, string]>, pattern: RegExp) {
   const metric = metrics.find(([label]) => pattern.test(label));
   if (!metric || metric[1] === "N/A") {
@@ -396,8 +547,12 @@ function getMetricSignal(metrics: Array<[string, string, string, string]>, patte
 
   const [, value, yoy, median] = metric;
   const comparison = median && median !== "N/A" ? `versus peer median ${median}` : "with no peer median supplied";
-  const movement = yoy && yoy !== "N/A" ? `, ${yoy} YoY` : "";
+  const movement = isMeaningfulMetricMovement(yoy) ? `, ${yoy} YoY` : "";
   return `${value}${movement}, ${comparison}`;
+}
+
+function isMeaningfulMetricMovement(value: string) {
+  return Boolean(value && value !== "N/A" && value.toLowerCase() !== "current");
 }
 
 function buildClosingRead(input: {

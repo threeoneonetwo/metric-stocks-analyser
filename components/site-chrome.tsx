@@ -83,7 +83,7 @@ export function TopBar({ reportActions = false, ticker }: TopBarProps) {
 
 export function FooterBar() {
   return (
-    <footer className="border-t-4 border-black bg-black px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 text-center font-mono text-[11px] uppercase leading-none tracking-[0.1em] text-metric-surface-dim">
+    <footer className="border-t-4 border-black bg-black px-4 py-3 text-center font-mono text-[9px] uppercase leading-none tracking-[0.1em] text-metric-surface-dim">
       Built by{" "}
       <a
         href="https://www.linkedin.com/in/vansh-sharma-/"
