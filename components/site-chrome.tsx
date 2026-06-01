@@ -86,6 +86,15 @@ export function FooterBar() {
     <footer className="border-t-4 border-black bg-black px-4 py-3 text-center font-mono text-[9px] uppercase leading-none tracking-[0.1em] text-metric-surface-dim">
       Built by{" "}
       <a
+        href="https://www.linkedin.com/in/yashnapandugala/"
+        target="_blank"
+        rel="noreferrer"
+        className="text-white underline underline-offset-2"
+      >
+        Yashna
+      </a>{" "}
+      &{" "}
+      <a
         href="https://www.linkedin.com/in/vansh-sharma-/"
         target="_blank"
         rel="noreferrer"
