@@ -1,12 +1,14 @@
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { DailyMovers } from "@/components/daily-movers";
 import { HomeFaq } from "@/components/home-faq";
+import { OnboardingJourney } from "@/components/onboarding-journey";
 import { TickerSearch } from "@/components/ticker-search";
 
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
       <TopBar />
+      <OnboardingJourney />
       <section className="mx-auto flex w-full max-w-[42rem] flex-1 flex-col gap-[32px] px-4 pb-10 pt-14 sm:px-6">
         <div className="flex flex-col items-center gap-[15px] text-center">
           <h1
