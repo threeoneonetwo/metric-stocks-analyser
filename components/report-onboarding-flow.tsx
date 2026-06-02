@@ -155,42 +155,42 @@ export function ReportOnboardingFlow({ ticker }: ReportOnboardingFlowProps) {
 
       {isOpen ? (
         <aside
-          className="report-guide-popout fixed right-0 top-[5.75rem] z-[70] w-[min(355px,calc(100vw-28px))] border-4 border-r-0 border-black bg-white neo-shadow"
+          className="report-guide-popout fixed right-0 top-[6.25rem] z-[70] w-[min(260px,calc(100vw-112px))] border-4 border-r-0 border-black bg-white neo-shadow"
           aria-label="Report walkthrough"
         >
-          <div className="border-b-4 border-black bg-metric-finance-accent-soft p-4">
-            <div className="flex items-start justify-between gap-3">
+          <div className="border-b-4 border-black bg-metric-finance-accent-soft p-3">
+            <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="font-mono text-[0.65rem] font-black uppercase tracking-[0.12em] text-metric-blue">
+                <p className="font-mono text-[0.52rem] font-black uppercase tracking-[0.1em] text-metric-blue">
                   Report walkthrough
                 </p>
-                <h2 className="mt-1 text-2xl font-black leading-none tracking-[-0.04em] text-black">
+                <h2 className="mt-1 text-[1.15rem] font-black leading-none tracking-[-0.04em] text-black">
                   Learn the {ticker} brief
                 </h2>
               </div>
               <button
                 type="button"
-                className="neo-press border-2 border-black bg-white px-3 py-2 font-mono text-[0.65rem] font-black uppercase tracking-[0.08em] text-black hover:bg-metric-finance-accent"
+                className="neo-press border-2 border-black bg-white px-2 py-1.5 font-mono text-[0.52rem] font-black uppercase tracking-[0.08em] text-black hover:bg-metric-finance-accent"
                 onClick={skipGuide}
               >
                 Skip
               </button>
             </div>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="border-2 border-black bg-black px-2 py-1 font-mono text-[0.65rem] font-black uppercase tracking-[0.08em] text-white">
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="border-2 border-black bg-black px-2 py-1 font-mono text-[0.55rem] font-black uppercase tracking-[0.08em] text-white">
                 Level {activeStep + 1}
               </span>
-              <span className="font-mono text-[0.65rem] font-black uppercase tracking-[0.1em] text-metric-muted">
+              <span className="font-mono text-[0.55rem] font-black uppercase tracking-[0.1em] text-metric-muted">
                 {activeStep + 1} / {guideSteps.length}
               </span>
             </div>
-            <div className="mt-3 h-3 border-2 border-black bg-white">
+            <div className="mt-2 h-2.5 border-2 border-black bg-white">
               <div className="h-full bg-metric-finance-accent transition-[width] duration-300 ease-out" style={{ width: `${progress}%` }} />
             </div>
           </div>
 
-          <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto p-4">
-            <div className="mb-4 grid grid-cols-6 gap-1.5">
+          <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto p-3">
+            <div className="mb-3 grid grid-cols-6 gap-1">
               {guideSteps.map((step, index) => {
                 const StepIcon = step.icon;
                 const isActive = index === activeStep;
@@ -199,7 +199,7 @@ export function ReportOnboardingFlow({ ticker }: ReportOnboardingFlowProps) {
                   <button
                     key={step.id}
                     type="button"
-                    className={`neo-press flex h-10 flex-col items-center justify-center border-2 border-black ${
+                    className={`neo-press flex h-8 flex-col items-center justify-center border-2 border-black ${
                       isActive ? "bg-metric-finance-accent" : isDone ? "bg-white" : "bg-metric-surface-variant"
                     }`}
                     aria-label={step.title}
@@ -208,8 +208,8 @@ export function ReportOnboardingFlow({ ticker }: ReportOnboardingFlowProps) {
                       scrollToTarget(step.target);
                     }}
                   >
-                    {isDone ? <Check size={14} strokeWidth={3} /> : <StepIcon size={14} strokeWidth={2.5} />}
-                    <span className="mt-0.5 font-mono text-[0.45rem] font-black uppercase leading-none">
+                    {isDone ? <Check size={11} strokeWidth={3} /> : <StepIcon size={11} strokeWidth={2.5} />}
+                    <span className="mt-0.5 font-mono text-[0.38rem] font-black uppercase leading-none">
                       L{index + 1}
                     </span>
                   </button>
@@ -217,48 +217,48 @@ export function ReportOnboardingFlow({ ticker }: ReportOnboardingFlowProps) {
               })}
             </div>
 
-            <div className="grid grid-cols-[auto_1fr] gap-3">
-              <div className="onboarding-icon flex h-12 w-12 items-center justify-center rounded-full border-4 border-black bg-metric-finance-accent-soft">
-                <ActiveIcon size={23} strokeWidth={2.6} />
+            <div className="grid grid-cols-[auto_1fr] gap-2">
+              <div className="onboarding-icon flex h-10 w-10 items-center justify-center rounded-full border-4 border-black bg-metric-finance-accent-soft">
+                <ActiveIcon size={18} strokeWidth={2.6} />
               </div>
               <div>
-                <p className="font-mono text-[0.65rem] font-black uppercase tracking-[0.12em] text-metric-blue">
+                <p className="font-mono text-[0.55rem] font-black uppercase tracking-[0.12em] text-metric-blue">
                   {active.eyebrow}
                 </p>
-                <h3 className="text-[1.65rem] font-black leading-[0.95] tracking-[-0.04em] text-black">
+                <h3 className="text-[1.15rem] font-black leading-[0.95] tracking-[-0.04em] text-black">
                   {active.title}
                 </h3>
               </div>
             </div>
 
-            <p className="mt-4 text-[0.95rem] font-medium leading-6 text-black">
+            <p className="mt-3 text-[0.78rem] font-medium leading-5 text-black">
               {active.body}
             </p>
 
-            <div className="mt-4 flex items-center justify-between gap-3 border-2 border-black bg-metric-finance-accent-soft px-3 py-2">
-              <span className="font-mono text-[0.65rem] font-black uppercase tracking-[0.08em] text-metric-muted">
+            <div className="mt-3 flex items-center justify-between gap-2 border-2 border-black bg-metric-finance-accent-soft px-2 py-1.5">
+              <span className="font-mono text-[0.52rem] font-black uppercase tracking-[0.08em] text-metric-muted">
                 Reward
               </span>
-              <span className="font-mono text-[0.7rem] font-black uppercase tracking-[0.08em] text-black">
+              <span className="font-mono text-[0.55rem] font-black uppercase tracking-[0.08em] text-black">
                 {active.reward}
               </span>
             </div>
 
-            <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
+            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
               <button
                 type="button"
-                className="neo-press border-4 border-black bg-black px-4 py-3 font-mono text-sm font-black uppercase tracking-[0.06em] text-white hover:bg-metric-finance-accent hover:text-black"
+                className="neo-press border-4 border-black bg-black px-3 py-2.5 font-mono text-[0.72rem] font-black uppercase tracking-[0.06em] text-white hover:bg-metric-finance-accent hover:text-black"
                 onClick={continueGuide}
               >
                 {isFinalStep ? "Finish level" : "Next level"}
               </button>
               <button
                 type="button"
-                className="neo-press flex items-center justify-center border-4 border-black bg-white px-3 text-black hover:bg-metric-finance-accent-soft"
+                className="neo-press flex items-center justify-center border-4 border-black bg-white px-2.5 text-black hover:bg-metric-finance-accent-soft"
                 onClick={() => scrollToTarget(active.target)}
                 aria-label="Jump to current report section"
               >
-                <ChevronRight size={22} strokeWidth={3} />
+                <ChevronRight size={18} strokeWidth={3} />
               </button>
             </div>
 
