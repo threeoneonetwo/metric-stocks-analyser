@@ -180,24 +180,35 @@ export default async function ReportPage({ params }: ReportPageProps) {
             </span>
           </div>
           <div className="grid gap-2">
-            {displayMetrics.slice(0, 6).map(([label, value, yoy, median]) => (
-              <div key={label} className="border-2 border-black bg-white p-4 neo-shadow-sm">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-muted">
-                      {label}
-                    </p>
-                    <p className="mt-2 text-3xl font-extrabold leading-none">{value}</p>
-                  </div>
-                  <div className="text-right font-mono text-[0.65rem] font-bold uppercase leading-5">
-                    <p className={yoy.startsWith("-") ? "text-metric-red" : "text-metric-green"}>
-                      {yoy}
-                    </p>
-                    <p className="text-metric-muted">Median {median}</p>
+            {displayMetrics.slice(0, 6).map(([label, value, yoy, median]) => {
+              const hasYoY = isMeaningfulMetricMovement(yoy);
+              const hasMedian = Boolean(median && median !== "N/A");
+
+              return (
+                <div key={label} className="border-2 border-black bg-white p-4 neo-shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-mono text-xs font-bold uppercase tracking-[0.08em] text-metric-muted">
+                        {label}
+                      </p>
+                      <p className="mt-2 text-3xl font-extrabold leading-none">{value}</p>
+                    </div>
+                    <div className="text-right font-mono text-[0.65rem] font-bold uppercase leading-5">
+                      {hasYoY ? (
+                        <p className={yoy.startsWith("-") ? "text-metric-red" : "text-metric-green"}>
+                          {yoy}
+                        </p>
+                      ) : null}
+                      {hasMedian ? (
+                        <p className="text-metric-muted">Median {median}</p>
+                      ) : (
+                        <p className="text-metric-blue">Current</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
