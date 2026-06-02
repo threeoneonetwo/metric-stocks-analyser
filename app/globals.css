@@ -246,6 +246,14 @@ input {
   animation: onboardingPulse 1.8s ease-in-out infinite;
 }
 
+.onboarding-badge {
+  animation: onboardingBadgePop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.onboarding-earned {
+  animation: onboardingEarned 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 @media (hover: hover) and (pointer: fine) {
   :where(a, button, label, tr, .surface, .neo-shadow, .neo-shadow-sm, article > section, main > section > section) {
     transition:
@@ -402,6 +410,28 @@ input {
   }
 }
 
+@keyframes onboardingBadgePop {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes onboardingEarned {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body::before,
   .scan-fill,
@@ -410,6 +440,8 @@ input {
   .faq-answer,
   .onboarding-card,
   .onboarding-icon,
+  .onboarding-badge,
+  .onboarding-earned,
   .onboarding-scan::after {
     animation: none !important;
     opacity: 1 !important;

@@ -10,6 +10,7 @@ const steps = [
     eyebrow: "Mission 01",
     title: "Search like a person",
     body: "Type a ticker or company name. Metric resolves the closest NSE/BSE stock and shows matches before you run it.",
+    reward: "Search scout",
     icon: Search,
     xp: 25,
   },
@@ -17,6 +18,7 @@ const steps = [
     eyebrow: "Mission 02",
     title: "Read the live signal",
     body: "The brief turns price action, volume, risk, peers, and news into plain-English context for the stock.",
+    reward: "Signal reader",
     icon: BarChart3,
     xp: 50,
   },
@@ -24,6 +26,7 @@ const steps = [
     eyebrow: "Mission 03",
     title: "Compare before acting",
     body: "Use movers, peer comparison, and news sentiment to understand whether the move has depth or is just noise.",
+    reward: "Peer checker",
     icon: Sparkles,
     xp: 75,
   },
@@ -31,6 +34,7 @@ const steps = [
     eyebrow: "Ready",
     title: "Run your first analysis",
     body: "Pick a stock, scan the brief, and refresh when you want the latest available snapshot.",
+    reward: "Brief unlocked",
     icon: Check,
     xp: 100,
   },
@@ -83,6 +87,7 @@ export function OnboardingJourney() {
   const step = steps[activeStep];
   const StepIcon = step.icon;
   const isFinalStep = activeStep === steps.length - 1;
+  const completedSteps = steps.slice(0, activeStep);
 
   function continueJourney() {
     if (isFinalStep) {
@@ -128,10 +133,10 @@ export function OnboardingJourney() {
         </div>
 
         <div className="relative overflow-hidden p-4">
-          <div className="onboarding-scan mb-4 border-2 border-dashed border-black bg-metric-finance-accent-soft p-3">
+          <div className="onboarding-scan mb-3 border-2 border-dashed border-black bg-metric-finance-accent-soft p-3">
             <div className="flex items-center justify-between gap-3">
               <span className="font-mono text-[10px] font-black uppercase tracking-[0.12em] text-metric-muted">
-                Analyst mode
+                Level {activeStep + 1} / {steps.length}
               </span>
               <span className="border-2 border-black bg-black px-2 py-1 font-mono text-[10px] font-black uppercase tracking-[0.1em] text-white">
                 {step.xp} XP
@@ -140,6 +145,26 @@ export function OnboardingJourney() {
             <div className="mt-3 h-3 border-2 border-black bg-white">
               <div className="h-full bg-metric-finance-accent transition-[width] duration-300 ease-out" style={{ width: `${progress}%` }} />
             </div>
+          </div>
+
+          <div className="mb-4 grid grid-cols-4 gap-2">
+            {steps.map((item, index) => {
+              const Icon = item.icon;
+              const isUnlocked = index <= activeStep;
+              return (
+                <div
+                  key={item.reward}
+                  className={`onboarding-badge border-2 border-black px-1 py-2 text-center ${
+                    isUnlocked ? "bg-white" : "bg-metric-surface-variant opacity-60"
+                  }`}
+                >
+                  <Icon className="mx-auto mb-1" size={14} strokeWidth={2.6} />
+                  <span className="block font-mono text-[7px] font-black uppercase leading-3 tracking-[0.05em] text-black">
+                    {isUnlocked ? "Unlocked" : "Locked"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           <div className="surface bg-white p-4">
@@ -161,6 +186,15 @@ export function OnboardingJourney() {
               {step.body}
             </p>
 
+            <div className="mt-4 flex items-center justify-between gap-3 border-2 border-black bg-metric-finance-accent-soft px-3 py-2">
+              <span className="font-mono text-[9px] font-black uppercase tracking-[0.08em] text-metric-muted">
+                Reward
+              </span>
+              <span className="font-mono text-[10px] font-black uppercase tracking-[0.08em] text-black">
+                {step.reward}
+              </span>
+            </div>
+
             <div className="mt-5 grid grid-cols-4 gap-2">
               {steps.map((item, index) => (
                 <div
@@ -179,7 +213,7 @@ export function OnboardingJourney() {
               className="neo-press border-4 border-black bg-black px-4 py-3 font-mono text-sm font-black uppercase tracking-[0.06em] text-white hover:bg-metric-finance-accent"
               onClick={continueJourney}
             >
-              {isFinalStep ? "Start analysis" : "Continue"}
+              {isFinalStep ? "Start analysis" : `Claim ${step.xp} XP`}
             </button>
             <button
               type="button"
@@ -198,6 +232,19 @@ export function OnboardingJourney() {
           >
             Skip guide
           </button>
+
+          {completedSteps.length > 0 ? (
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              {completedSteps.map((item) => (
+                <span
+                  key={item.reward}
+                  className="onboarding-earned border-2 border-black bg-white px-2 py-1 font-mono text-[8px] font-black uppercase tracking-[0.08em] text-black"
+                >
+                  + {item.reward}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
