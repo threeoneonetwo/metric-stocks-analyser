@@ -15,11 +15,11 @@ export default function Home() {
             className="animate-entrance delay-1 font-serif italic leading-[0.9] text-black"
             style={{
               fontFamily: 'Georgia, "Times New Roman", Times, serif',
-              fontWeight: 500,
+              fontWeight: 700,
             }}
           >
-            <span className="block whitespace-nowrap text-[48px]">Analyse Indian</span>
-            <span className="block whitespace-nowrap text-[48px]">stocks in seconds</span>
+            <span className="block whitespace-nowrap text-[40px]">Analyse Indian</span>
+            <span className="block whitespace-nowrap text-[40px]">stocks in seconds</span>
           </h1>
           <p className="animate-entrance delay-2 max-w-full text-[18px] leading-7">
             <span className="block whitespace-nowrap">
