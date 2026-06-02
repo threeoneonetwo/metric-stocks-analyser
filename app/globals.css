@@ -261,25 +261,6 @@ input {
   animation: onboardingEarned 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.report-guide-popout {
-  animation: reportGuidePopout 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-.report-guide-tab {
-  animation: reportGuideTab 260ms ease-out both;
-  writing-mode: vertical-rl;
-}
-
-[data-report-guide-target] {
-  scroll-margin-block: 9rem;
-}
-
-[data-report-guide-active="true"] {
-  animation: reportGuideTarget 900ms ease-out both;
-  outline: 3px solid var(--metric-finance-accent);
-  outline-offset: 4px;
-}
-
 @media (hover: hover) and (pointer: fine) {
   :where(a, button, label, tr, .surface, .neo-shadow, .neo-shadow-sm, article > section, main > section > section) {
     transition:
@@ -467,40 +448,6 @@ input {
   }
 }
 
-@keyframes reportGuidePopout {
-  from {
-    opacity: 0;
-    transform: translateX(110%) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
-
-@keyframes reportGuideTab {
-  from {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes reportGuideTarget {
-  0% {
-    box-shadow: 0 0 0 0 rgba(79, 143, 198, 0.45);
-  }
-  45% {
-    box-shadow: 0 0 0 10px rgba(79, 143, 198, 0.18);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(79, 143, 198, 0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   body::before,
   .scan-fill,
@@ -512,10 +459,7 @@ input {
   .onboarding-icon,
   .onboarding-badge,
   .onboarding-earned,
-  .onboarding-scan::after,
-  .report-guide-popout,
-  .report-guide-tab,
-  [data-report-guide-active="true"] {
+  .onboarding-scan::after {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
