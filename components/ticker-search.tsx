@@ -36,6 +36,7 @@ const searchSuggestions: SearchSuggestion[] = [
 export function TickerSearch() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [liveSuggestions, setLiveSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchState, setSearchState] = useState<"idle" | "loading" | "ready">("idle");
   const form = useForm<TickerForm>({
@@ -82,18 +83,21 @@ export function TickerSearch() {
 
   async function onSubmit(values: TickerForm) {
     const query = values.query.trim();
+    setIsNavigating(true);
     const ticker = await resolveTicker(query);
     if (ticker) {
       router.push(`/analyze/${ticker}`);
       return;
     }
 
+    setIsNavigating(false);
     form.setError("query", {
       message: "Could not find that NSE/BSE stock. Try the company name or exact ticker.",
     });
   }
 
   function openSuggestion(ticker: string) {
+    setIsNavigating(true);
     setIsDropdownOpen(false);
     form.setValue("query", ticker, { shouldValidate: true });
     router.push(`/analyze/${ticker}`);
@@ -121,6 +125,7 @@ export function TickerSearch() {
           aria-controls="ticker-search-dropdown"
           placeholder="ENTER COMPANY OR TICKER..."
           role="combobox"
+          suppressHydrationWarning
           className="min-w-0 flex-1 bg-transparent font-mono text-xs font-bold uppercase tracking-[0.05em] text-black outline-none placeholder:text-metric-blue"
           name={queryField.name}
           ref={queryField.ref}
@@ -199,10 +204,17 @@ export function TickerSearch() {
       ) : null}
       <button
         className="neo-press border-4 border-t-0 border-black bg-black px-8 py-2.5 font-mono text-sm font-bold uppercase tracking-[0.05em] text-white hover:bg-metric-green hover:text-white disabled:cursor-wait disabled:opacity-70"
-        disabled={form.formState.isSubmitting}
+        disabled={form.formState.isSubmitting || isNavigating}
       >
-        {form.formState.isSubmitting ? "Finding..." : "Analyze"}
+        {form.formState.isSubmitting || isNavigating ? "Loading..." : "Analyze"}
       </button>
+      {form.formState.isSubmitting || isNavigating ? (
+        <div className="border-x-4 border-b-4 border-black bg-white p-1">
+          <div className="h-3 overflow-hidden border-2 border-black bg-metric-surface-variant">
+            <div className="search-submit-loader h-full w-1/2 bg-metric-finance-accent" />
+          </div>
+        </div>
+      ) : null}
       {form.formState.errors.query?.message ? (
         <p className="border-4 border-t-0 border-black bg-white px-4 py-3 font-mono text-xs font-bold uppercase leading-5 text-metric-red">
           {form.formState.errors.query.message}

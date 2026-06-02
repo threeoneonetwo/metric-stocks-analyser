@@ -190,6 +190,14 @@ input {
   border: 2px solid var(--metric-surface-variant);
 }
 
+.search-submit-loader,
+.analyze-route-loader {
+  animation: loadingSlide 1.05s ease-in-out infinite alternate;
+  box-shadow: 3px 0 0 var(--metric-black);
+  transform-origin: left center;
+  will-change: transform;
+}
+
 .mover-list-track {
   animation: moverTicker 34s linear infinite;
   will-change: transform;
@@ -366,6 +374,15 @@ input {
   }
 }
 
+@keyframes loadingSlide {
+  from {
+    transform: translateX(-45%) scaleX(0.72);
+  }
+  to {
+    transform: translateX(62%) scaleX(0.95);
+  }
+}
+
 @keyframes springUp {
   0% {
     opacity: 0;
@@ -435,6 +452,8 @@ input {
 @media (prefers-reduced-motion: reduce) {
   body::before,
   .scan-fill,
+  .search-submit-loader,
+  .analyze-route-loader,
   .mover-list-track,
   .animate-entrance,
   .faq-answer,

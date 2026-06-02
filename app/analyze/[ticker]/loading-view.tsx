@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,11 +15,10 @@ export function LoadingView({ ticker, companyName }: LoadingViewProps) {
   const router = useRouter();
   const [factIndex, setFactIndex] = useState(0);
   const [progress, setProgress] = useState(8);
-  const shuffledFacts = useMemo(() => [...facts].sort(() => 0.5 - Math.random()), []);
 
   useEffect(() => {
     const factTimer = window.setInterval(() => {
-      setFactIndex((current) => (current + 1) % shuffledFacts.length);
+      setFactIndex((current) => (current + 1) % facts.length);
     }, 4500);
     const progressTimer = window.setInterval(() => {
       setProgress((current) => Math.min(current + 6, 100));
@@ -33,7 +32,7 @@ export function LoadingView({ ticker, companyName }: LoadingViewProps) {
       window.clearInterval(progressTimer);
       window.clearTimeout(redirectTimer);
     };
-  }, [router, shuffledFacts.length, ticker]);
+  }, [router, ticker]);
 
   return (
     <section className="mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-[42rem] flex-col justify-center px-4 py-10 sm:px-6">
@@ -77,7 +76,7 @@ export function LoadingView({ ticker, companyName }: LoadingViewProps) {
             transition={{ duration: 0.28 }}
             className="font-sans text-base font-bold uppercase leading-tight"
           >
-            {shuffledFacts[factIndex]}
+            {facts[factIndex]}
           </motion.p>
         </AnimatePresence>
       </div>
