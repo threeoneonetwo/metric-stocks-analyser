@@ -2,7 +2,8 @@ import { FooterBar, TopBar } from "@/components/site-chrome";
 import { AnalysisRunEvent } from "@/components/analytics-events";
 import { ensureReportForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { LoadingView } from "./loading-view";
 
 type AnalyzePageProps = {
@@ -13,6 +14,14 @@ type AnalyzePageProps = {
 export default async function AnalyzePage({ params, searchParams }: AnalyzePageProps) {
   const { ticker } = await params;
   const { refresh } = await searchParams;
+  const cookieStore = await cookies();
+  const hasCompletedOnboarding = cookieStore.get("metric_onboarding")?.value === "complete";
+
+  if (!hasCompletedOnboarding) {
+    const requestedPath = `/analyze/${ticker}${refresh ? `?refresh=${encodeURIComponent(refresh)}` : ""}`;
+    redirect(`/?onboarding=1&next=${encodeURIComponent(requestedPath)}`);
+  }
+
   const resolved = await resolveTickerQuery(decodeURIComponent(ticker));
   if (!resolved.ok) {
     notFound();

@@ -1,9 +1,10 @@
 "use client";
 
-import { BarChart3, Check, ChevronRight, Search, Sparkles, X } from "lucide-react";
+import { BarChart3, Check, ChevronRight, Search, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "metric:onboarding:v1";
+const COOKIE_KEY = "metric_onboarding";
 
 const steps = [
   {
@@ -45,8 +46,9 @@ export function OnboardingJourney() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
 
-  const closeOnboarding = useCallback(() => {
+  const completeOnboarding = useCallback(() => {
     window.localStorage.setItem(STORAGE_KEY, "complete");
+    document.cookie = `${COOKIE_KEY}=complete; path=/; max-age=31536000; SameSite=Lax`;
     setIsOpen(false);
   }, []);
 
@@ -55,6 +57,7 @@ export function OnboardingJourney() {
 
     if (shouldPreviewOnboarding) {
       window.localStorage.removeItem(STORAGE_KEY);
+      document.cookie = `${COOKIE_KEY}=; path=/; max-age=0; SameSite=Lax`;
     }
 
     setIsMounted(true);
@@ -69,19 +72,10 @@ export function OnboardingJourney() {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    function closeWithEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        closeOnboarding();
-      }
-    }
-
-    window.addEventListener("keydown", closeWithEscape);
-
     return () => {
       document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", closeWithEscape);
     };
-  }, [closeOnboarding, isOpen]);
+  }, [isOpen]);
 
   const progress = useMemo(() => ((activeStep + 1) / steps.length) * 100, [activeStep]);
   const step = steps[activeStep];
@@ -91,8 +85,14 @@ export function OnboardingJourney() {
 
   function continueJourney() {
     if (isFinalStep) {
-      closeOnboarding();
+      completeOnboarding();
       window.setTimeout(() => {
+        const nextPath = new URLSearchParams(window.location.search).get("next");
+        if (nextPath?.startsWith("/")) {
+          window.location.assign(nextPath);
+          return;
+        }
+
         document.getElementById("ticker-search")?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 80);
       return;
@@ -113,23 +113,18 @@ export function OnboardingJourney() {
       aria-labelledby="metric-onboarding-title"
     >
       <div className="onboarding-card w-full max-w-[390px] border-4 border-black bg-metric-finance-bg neo-shadow">
-        <div className="flex items-center justify-between border-b-4 border-black bg-metric-cream px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b-4 border-black bg-metric-cream px-4 py-3">
           <div>
             <p className="font-mono text-[10px] font-black uppercase tracking-[0.12em] text-metric-blue">
-              First run guide
+              Required first run
             </p>
             <p className="text-[24px] font-black leading-none tracking-[-0.04em] text-black">
               metric
             </p>
           </div>
-          <button
-            type="button"
-            aria-label="Close onboarding"
-            className="neo-press flex h-8 w-8 items-center justify-center border-2 border-black bg-white hover:bg-metric-finance-accent-soft"
-            onClick={closeOnboarding}
-          >
-            <X size={18} strokeWidth={2.8} />
-          </button>
+          <span className="border-2 border-black bg-black px-2 py-1 font-mono text-[9px] font-black uppercase tracking-[0.08em] text-white">
+            Search locked
+          </span>
         </div>
 
         <div className="relative overflow-hidden p-4">
@@ -213,7 +208,7 @@ export function OnboardingJourney() {
               className="neo-press border-4 border-black bg-black px-4 py-3 font-mono text-sm font-black uppercase tracking-[0.06em] text-white hover:bg-metric-finance-accent"
               onClick={continueJourney}
             >
-              {isFinalStep ? "Start analysis" : `Claim ${step.xp} XP`}
+              {isFinalStep ? "Unlock analysis" : `Claim ${step.xp} XP`}
             </button>
             <button
               type="button"
@@ -224,14 +219,6 @@ export function OnboardingJourney() {
               <ChevronRight size={22} strokeWidth={3} />
             </button>
           </div>
-
-          <button
-            type="button"
-            className="mx-auto mt-4 block font-mono text-[10px] font-black uppercase tracking-[0.12em] text-metric-muted underline underline-offset-4"
-            onClick={closeOnboarding}
-          >
-            Skip guide
-          </button>
 
           {completedSteps.length > 0 ? (
             <div className="mt-3 flex flex-wrap justify-center gap-2">
