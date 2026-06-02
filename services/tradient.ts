@@ -116,7 +116,7 @@ async function getWebNews(input: { ticker: string; companyName: string }) {
     .slice(0, 5)
     .map((item) => ({
       title: item.title,
-      summary: `Web coverage from ${item.source}. Open the article for the full context behind this business signal.`,
+      summary: buildWebNewsSummary(item.source, item.title),
       sentiment: inferHeadlineSentiment(item.title),
       publishedAt: item.publishedAt,
       symbol: input.ticker,
@@ -125,6 +125,27 @@ async function getWebNews(input: { ticker: string; companyName: string }) {
     }));
 
   return { ok: true as const, data: news };
+}
+
+function buildWebNewsSummary(source: string, title: string) {
+  const lowerTitle = title.toLowerCase();
+  if (/result|profit|revenue|earnings|margin|quarter|q[1-4]/i.test(lowerTitle)) {
+    return `${source} is pointing to an earnings update, so the useful read is margin direction, revenue quality, and whether management commentary supports the market reaction.`;
+  }
+
+  if (/deal|order|contract|client|wins?/i.test(lowerTitle)) {
+    return `${source} is highlighting business momentum. The key question is whether the announcement can move revenue visibility, not just sentiment.`;
+  }
+
+  if (/falls?|drops?|declines?|lost|weak|cut|downgrade/i.test(lowerTitle)) {
+    return `${source} is flagging pressure around the stock or business. Read it against peers and volume before treating it as a company-only signal.`;
+  }
+
+  if (/rises?|gains?|surges?|beats?|upgrade/i.test(lowerTitle)) {
+    return `${source} is flagging a constructive development. The important check is whether price, volume, and fundamentals are confirming the same story.`;
+  }
+
+  return `${source} adds a relevant business signal. The headline is useful, but the report should weigh it alongside price action, peers, and technicals.`;
 }
 
 async function getTradientTechnicals(ticker: string) {

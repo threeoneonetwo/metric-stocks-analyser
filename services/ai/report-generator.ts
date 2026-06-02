@@ -5,7 +5,7 @@ import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { getMockReport } from "@/domain/mock-report";
 import type { MarketSnapshot } from "@/services/marketData/types";
 
-export const REPORT_PROMPT_VERSION = 2;
+export const REPORT_PROMPT_VERSION = 3;
 
 const generatedMetricSchema = z.object({
   label: z.string().min(1),
@@ -69,7 +69,8 @@ export async function generateReportPayload(
       : "No market data provider response is available. Use N/A for unavailable market fields.",
     "The report must be useful for a mobile UI and must fit the provided schema.",
     "Write like an IIM Ahmedabad-trained equity analyst writing for a smart investor before market action: direct, evidence-led, commercially literate, and calm.",
-    "Do not sound like a template. Vary sentence structure. Do not repeat phrases such as 'the next question', 'this means', 'market setup', or 'before buying' across fields.",
+    "Make the prose sound human. Avoid robotic connector phrases, repeated sentence frames, and generic AI language. Do not over-explain obvious data.",
+    "Do not sound like a template. Vary sentence structure. Do not repeat phrases such as 'the next question', 'this means', 'market setup', 'latest snapshot', 'single number', or 'before buying' across fields.",
     "Make the overview a business-quality read: what the company does, where the operating leverage or fragility is likely to sit, and what the current market data can and cannot confirm.",
     "Make the summary a single polished analyst paragraph that synthesizes price action, volume, 52-week position, valuation/quality placeholders, peer context, and news/technical signals into a coherent view.",
     "Use six metric rows. If marketData.metrics contains Upstox key ratios, prioritize those exact ratio values and sector benchmark medians before using price-only fields. Each row must include label, value, yoy, and median. Use N/A only where the supplied data cannot support a number.",
@@ -114,7 +115,7 @@ async function generateWithModelFallback(prompt: string) {
         model: google(modelId),
         schema: reportPayloadSchema,
         schemaName: "MetricFinanceEquityReport",
-        temperature: 0.35,
+        temperature: 0.45,
         system:
           "You are a senior Indian equities analyst. Write concise, high-signal research prose for NSE and BSE listed companies. Sound like a trained finance professional, not a chatbot or marketing page. Anchor every claim to supplied data, identify trade-offs, and avoid generic filler. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. Avoid buy, sell, hold, target price, stop loss, and recommendation language.",
         prompt,

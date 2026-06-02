@@ -186,7 +186,7 @@ function buildFallbackOverview(marketData: MarketSnapshot) {
       ? `${marketData.sector ?? "Sector not classified"} / ${marketData.industry ?? "industry not classified"}`
       : "sector and industry classification are not available from the current feed";
 
-  return `${marketData.companyName} trades on ${marketData.exchange} under ${marketData.symbol}. The live feed places it in ${sectorLine}, so the immediate read should separate three things: today's price pressure, where the stock sits inside its yearly range, and whether the balance-sheet or valuation fields are complete enough to support a deeper judgment.`;
+  return `${marketData.companyName} trades on ${marketData.exchange} under ${marketData.symbol}. The current feed places it in ${sectorLine}. For this read, the useful checks are simple: what the price is doing today, where it sits inside the 52-week band, and whether the available data is strong enough to say anything meaningful about valuation or balance-sheet quality.`;
 }
 
 function buildFallbackSummary(marketData: MarketSnapshot) {
@@ -196,7 +196,7 @@ function buildFallbackSummary(marketData: MarketSnapshot) {
   const range = formatRangePosition(marketData);
   const marketCap = marketData.marketCap ? `Market cap is ${formatLargeCurrency(marketData.marketCap)},` : "Market cap is unavailable,";
 
-  return `${marketData.companyName} is printing ${price} with a ${change} latest move and ${volume} shares reported in volume. ${marketCap} while the stock is ${range}. That combination gives the page enough to judge momentum and range context, but not enough to underwrite quality on its own; the missing bridge is audited fundamentals, margins, leverage, and peer-normalized valuation. Until that feed is connected, the stronger read comes from watching whether price action is being confirmed by volume and by the top two listed peers.`;
+  return `${marketData.companyName} is at ${price}, moving ${change}, with ${volume} shares reported in volume. ${marketCap} and the stock is ${range}. That is enough to read the market tape, but not enough to fully judge business quality. The stronger interpretation comes from whether volume and the top two listed peers confirm the move, while audited fundamentals, margins, leverage, and peer-normalized valuation fill in the durability check.`;
 }
 
 function getFallbackSentiment(marketData: MarketSnapshot) {

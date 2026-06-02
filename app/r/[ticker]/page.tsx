@@ -44,6 +44,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
       })
     : report.peers;
   const displayMetrics = getDisplayMetrics(report.metrics, marketData);
+  const hasFundamentalData = hasFundamentalMetrics(displayMetrics);
   const peerSnapshots = await getPeerSnapshots(displayPeers.slice(1));
   const marketRead = getMarketRead(marketData);
   const rangeRead = getRangeRead(marketData);
@@ -173,9 +174,9 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
         <section>
           <div className="mb-3 flex items-end justify-between gap-4">
-            <SectionHeading title="Business Quality" />
+            <SectionHeading title={hasFundamentalData ? "Business Quality" : "Market Feed"} />
             <span className="font-mono text-[0.65rem] font-bold uppercase text-metric-muted">
-              Current feed
+              {hasFundamentalData ? "Current feed" : "Quote feed"}
             </span>
           </div>
           <div className="grid gap-2">
@@ -302,7 +303,7 @@ function getDisplayMetrics(
   marketData: MarketSnapshot | undefined,
 ) {
   const fundamentalMetrics = (marketData?.metrics ?? [])
-    .filter((metric) => metric.median && /p\/?e|p\/?b|roa|roe|roce|ev\/ebitda|quick|current ratio|debt|d\/?e|interest coverage/i.test(metric.label))
+    .filter((metric) => metric.median && isFundamentalMetricLabel(metric.label))
     .map<[string, string, string, string]>((metric) => [
       metric.label,
       metric.value,
@@ -322,6 +323,44 @@ function getDisplayMetrics(
 
 function normalizeMetricLabel(label: string) {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function hasFundamentalMetrics(metrics: Array<[string, string, string, string]>) {
+  return metrics.some(([label, value]) => value !== "N/A" && isFundamentalMetricLabel(label));
+}
+
+function isFundamentalMetricLabel(label: string) {
+  const normalized = normalizeMetricLabel(label);
+  const exactKeys = ["pe", "pb", "de"];
+  const containsKeys = [
+    "peratio",
+    "pricetoearnings",
+    "pbratio",
+    "pricetobook",
+    "evebitda",
+    "enterprisevaluetoebitda",
+    "roa",
+    "roe",
+    "roce",
+    "revenuegrowth",
+    "eps",
+    "dividendyield",
+    "freecashflow",
+    "cashconversion",
+    "quickratio",
+    "currentratio",
+    "debttoequity",
+    "interestcoverage",
+    "altman",
+    "piotroski",
+  ];
+
+  return (
+    exactKeys.includes(normalized) ||
+    containsKeys.some((key) => normalized === key || normalized.includes(key)) ||
+    normalized.includes("margin") ||
+    normalized.includes("profit")
+  );
 }
 
 async function getPeerSnapshots(peers: string[]) {
@@ -353,6 +392,7 @@ function buildMetricBrief(input: {
   const price = formatPrice(marketData?.price ?? null);
   const change = formatPercent(marketData?.dayChangePercent ?? null);
   const volume = formatNumber(marketData?.volume ?? null);
+  const sectorContext = marketData?.sector ?? marketData?.industry ?? "its peer group";
   const peerMoves = input.peerLabels
     .map((peer, index) => {
       const snapshot = input.peerSnapshots[index];
@@ -366,13 +406,13 @@ function buildMetricBrief(input: {
   const technical = input.signals?.technicals[0];
   const leadNews = input.signals?.news[0];
 
-  const setupSentence = `${input.companyName} is trading at ${price}, ${change} on the latest snapshot, with ${volume} shares of reported volume.`;
+  const setupSentence = `${input.companyName} is trading at ${price}, a ${change} day move, with ${volume} shares changing hands.`;
   const rangeSentence = input.rangeRead.meaning
     .replace(/^The current price is /, "It is ")
-    .replace(/^That places /, "Range context: ");
+    .replace(/^That puts /, "Range context: ");
   const peerSentence = peerMoves
-    ? `Against its nearest listed peers, today's move reads as ${peerMoves}, so the stock is moving with a weak telecom and large-cap tape rather than in isolation.`
-    : "Peer movement is not complete enough yet to separate company-specific price action from a broader sector move.";
+    ? `Peer context matters here: ${peerMoves}. That helps separate a company-specific move from a broader ${sectorContext} tape.`
+    : "Peer data is thin, so the read has to lean more on price, volume, range position, and news flow.";
   const fundamentalsSentence = [
     valuation ? `valuation: ${valuation}` : null,
     quality ? `quality: ${quality}` : null,
@@ -381,11 +421,11 @@ function buildMetricBrief(input: {
     .filter(Boolean)
     .join("; ");
   const evidenceSentence = fundamentalsSentence
-    ? `The fundamental checkpoint is ${fundamentalsSentence}.`
-    : `The fundamental checkpoint is still thin because the current feed has not supplied valuation, profitability, and balance-sheet depth together.`;
+    ? `The available fundamentals add ${fundamentalsSentence}.`
+    : `The quote feed has not supplied full valuation, profitability, and balance-sheet ratios yet, so the durability of the move cannot be judged from fundamentals alone.`;
   const signalSentence = [
-    technical ? `Technical signal: ${technical.label} at ${technical.value}, ${technical.meaning.toLowerCase()}` : null,
-    leadNews ? `Latest news tone: ${leadNews.sentiment.toLowerCase()} from ${leadNews.source} on "${leadNews.title}".` : null,
+    technical ? `${technical.label} is at ${technical.value}; ${lowercaseFirst(technical.meaning)}` : null,
+    leadNews ? `The lead news item is ${leadNews.sentiment.toLowerCase()}: ${leadNews.source} reported "${leadNews.title}".` : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -427,10 +467,10 @@ function buildRiskCards(input: {
       copy: valuation
         ? buildMetricComparisonCopy(
             valuation,
-            "Valuation check",
-            "If the market is paying above the sector benchmark, the company needs growth, margins, or earnings visibility to carry that premium.",
+            "Valuation read",
+            "If the multiple is rich versus peers, the market will need cleaner growth, margin resilience, or earnings visibility to keep supporting it.",
           )
-        : `${input.rangeRead.meaning} Without a valuation ratio in the current feed, price location and peer movement carry more weight than multiple-based judgement.`,
+        : `${input.rangeRead.meaning} With no clean valuation ratio in the feed, the honest read is range, peer action, and whether fresh numbers confirm the move.`,
       stripe: "bg-metric-red",
     },
     {
@@ -439,20 +479,20 @@ function buildRiskCards(input: {
       copy: quality
         ? buildMetricComparisonCopy(
             quality,
-            "Quality check",
-            "The risk is whether profitability can keep supporting the move once quarterly earnings, margins, and cash conversion update.",
+            "Quality read",
+            "The question is whether earnings quality can keep pace once margins, deal momentum, and cash conversion are refreshed.",
           )
-        : `${input.marketRead.meaning} Profitability ratios are not complete in this snapshot, so the next read should lean on results, margin commentary, and peer execution.`,
+        : `${input.marketRead.meaning} Profitability data is incomplete, so earnings commentary, margin direction, and peer execution deserve more weight than a single daily move.`,
       stripe: "bg-metric-pink",
     },
     {
       Icon: Bolt,
       title: "Market timing",
       copy: [
-        `Fresh snapshot: ${formatTimestamp(input.marketData?.asOf ?? null)}.`,
+        `Latest market print: ${formatTimestamp(input.marketData?.asOf ?? null)}.`,
         input.volumeRead.meaning,
-        balanceSheet ? `Balance-sheet check: ${balanceSheet[0]} is ${balanceSheet[1]} versus sector median ${balanceSheet[3]}.` : null,
-        newsSignal.label !== "No News" ? `News tone is ${newsSignal.label.toLowerCase()} (${newsSignal.detail}).` : null,
+        balanceSheet ? `Balance-sheet read: ${balanceSheet[0]} is ${balanceSheet[1]} versus sector median ${balanceSheet[3]}.` : null,
+        newsSignal.label !== "No News" ? `The matched news flow is ${newsSignal.label.toLowerCase()} (${newsSignal.detail}).` : null,
       ]
         .filter(Boolean)
         .join(" "),
@@ -487,10 +527,12 @@ function buildWhatThisMeans(input: {
     return [
       input.marketRead.meaning,
       input.rangeRead.meaning,
-      fundamentals ? `The fundamental layer says ${fundamentals}.` : null,
-      technical ? `The technical layer adds ${technical.label} at ${technical.value}: ${technical.meaning}` : null,
-      newsSignal.label !== "No News" ? `The news layer is ${newsSignal.label.toLowerCase()} with ${newsSignal.detail}.` : null,
-      "Together, the point is to read price, quality, balance-sheet strength, and news flow as one setup rather than treating any single number as the answer.",
+      fundamentals ? `On fundamentals, ${fundamentals}.` : null,
+      technical ? `Technically, ${technical.label} at ${technical.value} says this: ${technical.meaning}` : null,
+      newsSignal.label !== "No News" ? `News flow is ${newsSignal.label.toLowerCase()} (${newsSignal.detail}).` : null,
+      fundamentals
+        ? "The cleaner conclusion comes from alignment: price, peer action, business quality, balance-sheet comfort, and news should be read together."
+        : "Until deeper fundamentals arrive, the cleanest read is whether price, volume, peers, technicals, and news are telling the same story.",
     ]
       .filter(Boolean)
       .join(" ");
@@ -500,7 +542,7 @@ function buildWhatThisMeans(input: {
 }
 
 function getMetricTuple(metrics: Array<[string, string, string, string]>, pattern: RegExp) {
-  const metric = metrics.find(([label, value]) => pattern.test(label) && value !== "N/A");
+  const metric = metrics.find(([label, value]) => pattern.test(label) && value !== "N/A" && isFundamentalMetricLabel(label));
   return metric ?? null;
 }
 
@@ -542,7 +584,7 @@ function parseMetricNumber(value: string) {
 }
 
 function getMetricSignal(metrics: Array<[string, string, string, string]>, pattern: RegExp) {
-  const metric = metrics.find(([label]) => pattern.test(label));
+  const metric = metrics.find(([label]) => pattern.test(label) && isFundamentalMetricLabel(label));
   if (!metric || metric[1] === "N/A") {
     return null;
   }
@@ -557,6 +599,10 @@ function isMeaningfulMetricMovement(value: string) {
   return Boolean(value && value !== "N/A" && value.toLowerCase() !== "current");
 }
 
+function lowercaseFirst(value: string) {
+  return value ? `${value.charAt(0).toLowerCase()}${value.slice(1)}` : value;
+}
+
 function buildClosingRead(input: {
   marketRead: AnalysisRead;
   rangeRead: AnalysisRead;
@@ -565,11 +611,11 @@ function buildClosingRead(input: {
   hasTechnicals: boolean;
 }) {
   if (!input.hasFundamentals) {
-    return "The practical read is momentum-first: price, range, peers, technicals, and news can frame the setup, but quality and valuation still need a deeper fundamentals feed before the page can judge durability.";
+    return "For now, this is a market-tape read: price, range, peers, technicals, and news can explain the setup, while valuation and quality need a deeper fundamentals feed before durability can be judged.";
   }
 
   if (input.hasNews && input.hasTechnicals) {
-    return "The useful interpretation is whether the market move, news flow, and technical tape are pointing in the same direction; alignment matters more than any single headline or ratio.";
+    return "The useful read is whether price, news, and technicals are confirming each other. One headline or one ratio is rarely enough.";
   }
 
   return `${input.marketRead.meaning} ${input.rangeRead.meaning}`;
@@ -585,27 +631,27 @@ function getMarketRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   if (change === null || change === undefined) {
     return {
       label: "Market Signal: Incomplete",
-      meaning: "The latest price move is unavailable from the current provider, so the first check is data completeness before interpreting momentum.",
+      meaning: "The current price move is unavailable from the provider, so the first issue is data completeness rather than momentum.",
     };
   }
 
   if (change >= 2) {
     return {
       label: "Market Signal: Strong Move",
-      meaning: `The stock is up ${formatPercent(change)} on the latest snapshot, which points to visible positive price pressure. Volume, range position, and peer movement decide whether that pressure has depth.`,
+      meaning: `The stock is up ${formatPercent(change)} today. That is a meaningful move; volume and peer action decide whether it has real depth or is just a sharp daily print.`,
     };
   }
 
   if (change <= -2) {
     return {
       label: "Market Signal: Weak Move",
-      meaning: `The stock is down ${formatPercent(change)} on the latest snapshot, so sellers are controlling the near-term tape. Peer movement and news flow decide whether the pressure is company-specific or sector-wide.`,
+      meaning: `The stock is down ${formatPercent(change)} today, so sellers are setting the near-term tone. The next check is whether peers are also weak or this is company-specific pressure.`,
     };
   }
 
   return {
     label: "Market Signal: Normal Range",
-    meaning: `The stock is moving ${formatPercent(change)} on the latest snapshot, a moderate daily move that needs confirmation from volume, range position, and peer behaviour.`,
+    meaning: `The stock is moving ${formatPercent(change)} today, which is a moderate move. Volume, range position, and peer behaviour decide whether it is worth reading into.`,
   };
 }
 
@@ -616,7 +662,7 @@ function getRangeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   if (price === null || price === undefined || high === null || high === undefined || low === null || low === undefined || high === low) {
     return {
       label: "Range Context: Unavailable",
-      meaning: "The 52-week range is incomplete, so the page cannot yet explain whether the current price is near the top, middle, or bottom of its recent trading band.",
+      meaning: "The 52-week range is incomplete, so the report cannot place the price inside its recent trading band yet.",
     };
   }
 
@@ -624,20 +670,20 @@ function getRangeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   if (position >= 75) {
     return {
       label: "Range Context: Upper Band",
-      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That places it closer to the yearly high, where valuation support and earnings delivery carry more weight.`,
+      meaning: `The current price sits around ${position.toFixed(0)}% through its 52-week range. That puts it closer to the yearly high, where valuation support and earnings delivery matter more.`,
     };
   }
 
   if (position <= 25) {
     return {
       label: "Range Context: Lower Band",
-      meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That places it near the lower band, where the distinction between temporary weakness and fundamental stress matters.`,
+      meaning: `The current price sits around ${position.toFixed(0)}% through its 52-week range. That puts it near the lower band, where the key question is whether weakness is temporary or fundamental.`,
     };
   }
 
   return {
     label: "Range Context: Middle Band",
-    meaning: `The current price is around ${position.toFixed(0)}% of the way through its 52-week range. That places it away from obvious range extremes, making peer movement and business quality more useful context.`,
+    meaning: `The current price sits around ${position.toFixed(0)}% through its 52-week range. It is not at an obvious extreme, so peers and business quality carry more weight.`,
   };
 }
 
@@ -645,13 +691,13 @@ function getVolumeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   if (!marketData?.volume) {
     return {
       label: "Volume Context: Unavailable",
-      meaning: "Volume is unavailable, so the page cannot yet judge whether today's move has unusually strong participation.",
+      meaning: "Volume is unavailable, so the report cannot judge how widely today’s move was participated in.",
     };
   }
 
   return {
     label: "Volume Context: Available",
-    meaning: `Latest reported volume is ${formatNumber(marketData.volume)} shares, which gives the price move a participation check instead of leaving it as a standalone quote change.`,
+    meaning: `${formatNumber(marketData.volume)} shares traded in the latest feed. That helps judge whether the move has participation behind it.`,
   };
 }
 
@@ -664,7 +710,8 @@ function buildSignalTiles(input: {
   metrics: Array<[string, string, string, string]>;
   signals: TradientSignal | null;
 }) {
-  const metric = (pattern: RegExp) => input.metrics.find(([label]) => pattern.test(label));
+  const metric = (pattern: RegExp) =>
+    input.metrics.find(([label]) => pattern.test(label) && isFundamentalMetricLabel(label));
   const valuation = metric(/p\/?e|valuation/i);
   const quality = metric(/roe|roce|margin|profit/i);
   const debt = metric(/debt|d\/?e|risk|quick|current ratio|interest coverage/i);
@@ -694,19 +741,19 @@ function buildSignalTiles(input: {
     {
       label: "Valuation",
       value: valuation?.[1] ?? "Pending",
-      meaning: valuation ? `${valuation[2]} YoY` : "Needs fundamentals feed",
+      meaning: valuation ? `${valuation[2]} YoY` : "Awaiting ratios",
       tone: "dark" as const,
     },
     {
       label: "Business Quality",
       value: quality?.[1] ?? "Mixed",
-      meaning: quality ? `${quality[0]} vs ${quality[3]}` : "AI context only",
+      meaning: quality ? `${quality[0]} vs ${quality[3]}` : "Awaiting ratios",
       tone: "white" as const,
     },
     {
       label: "Debt / Risk",
       value: debt?.[1] ?? "Check",
-      meaning: debt ? `${debt[0]} vs ${debt[3]}` : "Needs debt metric",
+      meaning: debt ? `${debt[0]} vs ${debt[3]}` : "Awaiting leverage",
       tone: "white" as const,
     },
     {
