@@ -19,8 +19,8 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="relative z-50 border-b-4 border-black bg-metric-cream px-4 py-1.5 neo-shadow">
-      <div className="mx-auto flex h-10 max-w-[42rem] items-center justify-between">
+    <header className="border-b-4 border-black bg-metric-cream neo-shadow">
+      <div className="mx-auto flex h-10 max-w-[42rem] items-center justify-between px-4 py-1.5">
         <Link
           href="/"
           className="text-[30px] font-extrabold leading-none tracking-[-0.04em] text-black"
@@ -114,7 +114,7 @@ function HeaderScrollProgress() {
   }, []);
 
   return (
-    <div className="absolute bottom-[-4px] left-0 h-[3px] w-full overflow-hidden bg-transparent" aria-hidden="true">
+    <div className="h-[3px] w-full overflow-hidden bg-transparent" aria-hidden="true">
       <div
         className="scroll-progress-fill h-full bg-metric-finance-accent transition-[width] duration-100 ease-linear"
         style={{ width: `${progress}%` }}

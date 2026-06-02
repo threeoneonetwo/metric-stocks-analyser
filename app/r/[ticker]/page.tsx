@@ -114,7 +114,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
     <main className="flex min-h-screen flex-col">
       <ReportViewEvent ticker={report.ticker} companyName={report.companyName} />
       <TopBar reportActions ticker={report.ticker} companyName={report.companyName} />
-      <div className="relative z-40 border-b-4 border-black bg-white px-4 py-3">
+      <div className="border-b-4 border-black bg-white px-4 py-3">
         <div className="mx-auto flex max-w-[42rem] items-center justify-between gap-4">
           <div>
             <p className="font-mono text-2xl font-bold uppercase leading-none">
