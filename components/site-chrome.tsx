@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, RefreshCw, Share2, X } from "lucide-react";
+import { Menu, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
+import { ShareReportButton } from "@/components/share-report-button";
 
 type TopBarProps = {
   reportActions?: boolean;
   ticker?: string;
+  companyName?: string;
 };
 
 const menuLinks = [
   ["About", "https://metricfinance.notion.site/Metric-Finance-36dbc65fd7b380799a64ec4979735b20?source=copy_link"],
 ];
 
-export function TopBar({ reportActions = false, ticker }: TopBarProps) {
+export function TopBar({ reportActions = false, ticker, companyName }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -35,12 +37,13 @@ export function TopBar({ reportActions = false, ticker }: TopBarProps) {
             >
               <RefreshCw size={17} strokeWidth={2.2} />
             </Link>
-            <button
+            <ShareReportButton
+              ticker={ticker ?? ""}
+              companyName={companyName}
+              iconOnly
+              iconSize={17}
               className="neo-press inline-flex h-8 w-8 items-center justify-center border-2 border-black bg-metric-green-bright"
-              aria-label="Share report"
-            >
-              <Share2 size={17} strokeWidth={2.2} />
-            </button>
+            />
           </div>
         ) : (
           <div className="relative">

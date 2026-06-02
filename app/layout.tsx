@@ -4,6 +4,7 @@ import { GoogleAnalytics } from "@/components/google-analytics";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://metricfinance.app"),
   title: "Metric Stocks Analyser",
   description:
     "Metric Finance generates AI-powered equity research reports for NSE and BSE listed stocks.",

@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, Bolt, RefreshCw, Share2, TrendingDown } from "lucide-react";
+import type { Metadata } from "next";
+import { AlertTriangle, Bolt, RefreshCw, TrendingDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReportViewEvent } from "@/components/analytics-events";
+import { ShareReportButton } from "@/components/share-report-button";
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/competitors";
 import { getReportViewForTicker } from "@/domain/report-cache";
@@ -18,6 +20,37 @@ type ReportPageProps = {
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export async function generateMetadata({ params }: ReportPageProps): Promise<Metadata> {
+  const { ticker } = await params;
+  const decodedTicker = decodeURIComponent(ticker);
+  const resolved = await resolveTickerQuery(decodedTicker);
+  const reportTicker = resolved.ok ? resolved.data.ticker : decodedTicker.toUpperCase();
+  const companyName = resolved.ok ? resolved.data.companyName : `${reportTicker} stock`;
+  const title = `${reportTicker} analysis by Metric Finance`;
+  const description = `Read the Metric Finance brief on ${companyName}: price action, volume, peers, technicals, news, and risk context.`;
+  const path = `/r/${encodeURIComponent(reportTicker)}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: path,
+    },
+    openGraph: {
+      title,
+      description,
+      url: path,
+      siteName: "Metric Finance",
+      type: "article",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function ReportPage({ params }: ReportPageProps) {
   const { ticker } = await params;
@@ -80,7 +113,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
   return (
     <main className="flex min-h-screen flex-col">
       <ReportViewEvent ticker={report.ticker} companyName={report.companyName} />
-      <TopBar reportActions ticker={report.ticker} />
+      <TopBar reportActions ticker={report.ticker} companyName={report.companyName} />
       <div className="sticky top-[68px] z-40 border-b-4 border-black bg-white px-4 py-3">
         <div className="mx-auto flex max-w-[42rem] items-center justify-between gap-4">
           <div>
@@ -278,9 +311,11 @@ export default async function ReportPage({ params }: ReportPageProps) {
               metricBrief,
             })}
           </p>
-          <button className="neo-press mt-6 inline-flex w-full items-center justify-center gap-2 border-4 border-black bg-metric-finance-accent px-8 py-4 font-mono text-sm font-extrabold uppercase tracking-[0.05em] text-black neo-shadow">
-            <Share2 size={18} /> Share Report
-          </button>
+          <ShareReportButton
+            ticker={report.ticker}
+            companyName={report.companyName}
+            className="neo-press mt-6 inline-flex w-full items-center justify-center gap-2 border-4 border-black bg-metric-finance-accent px-8 py-4 font-mono text-sm font-extrabold uppercase tracking-[0.05em] text-black neo-shadow"
+          />
         </section>
       </article>
       <FooterBar />
