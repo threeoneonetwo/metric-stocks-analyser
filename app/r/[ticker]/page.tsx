@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { AlertTriangle, Bolt, RefreshCw, TrendingDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReportViewEvent } from "@/components/analytics-events";
+import { ReportOnboardingFlow } from "@/components/report-onboarding-flow";
 import { ShareReportButton } from "@/components/share-report-button";
 import { FooterBar, TopBar } from "@/components/site-chrome";
 import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/competitors";
@@ -153,7 +154,9 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <section className="surface p-5">
+        <ReportOnboardingFlow ticker={report.ticker} />
+
+        <section className="surface p-5" data-report-guide-target="metric-brief">
           <div className="mb-4 flex items-center justify-between gap-3">
             <SectionHeading title="Metric Brief" />
             <Link
@@ -169,7 +172,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </p>
         </section>
 
-        <section>
+        <section data-report-guide-target="signal-grid">
           <div className="mb-3 flex items-end justify-between gap-3">
             <SectionHeading title="Signal Grid" />
             <span className="font-mono text-[0.65rem] font-bold uppercase tracking-[0.08em] text-metric-muted">
@@ -245,12 +248,14 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <ReportTable
-          target={marketData}
-          targetLabel={report.ticker}
-          peers={displayPeers}
-          peerSnapshots={peerSnapshots}
-        />
+        <div data-report-guide-target="peer-lens">
+          <ReportTable
+            target={marketData}
+            targetLabel={report.ticker}
+            peers={displayPeers}
+            peerSnapshots={peerSnapshots}
+          />
+        </div>
 
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -273,9 +278,11 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <NewsSentiment signals={signals} />
+        <div data-report-guide-target="news-sentiment">
+          <NewsSentiment signals={signals} />
+        </div>
 
-        <section>
+        <section data-report-guide-target="risk-feed">
           <SectionHeading title="What Could Matter" />
           <div className="mt-4 grid gap-3">
             {buildRiskCards({
@@ -298,7 +305,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </section>
 
-        <section className="border-4 border-black bg-black p-6 text-white neo-shadow">
+        <section className="border-4 border-black bg-black p-6 text-white neo-shadow" data-report-guide-target="what-this-means">
           <SectionHeading title="What This Means" inverted />
           <p className="mt-4 text-sm leading-6 text-metric-surface-dim">
             {buildWhatThisMeans({
