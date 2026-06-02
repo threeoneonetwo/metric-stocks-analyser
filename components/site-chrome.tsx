@@ -19,7 +19,7 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b-4 border-black bg-metric-cream px-4 py-1.5 neo-shadow">
+    <header className="relative z-50 border-b-4 border-black bg-metric-cream px-4 py-1.5 neo-shadow">
       <div className="mx-auto flex h-10 max-w-[42rem] items-center justify-between">
         <Link
           href="/"
