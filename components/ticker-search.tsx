@@ -86,7 +86,7 @@ export function TickerSearch() {
     setIsNavigating(true);
     const ticker = await resolveTicker(query);
     if (ticker) {
-      router.push(`/analyze/${ticker}`);
+      await openReport(ticker);
       return;
     }
 
@@ -96,11 +96,30 @@ export function TickerSearch() {
     });
   }
 
-  function openSuggestion(ticker: string) {
+  async function openSuggestion(ticker: string) {
     setIsNavigating(true);
     setIsDropdownOpen(false);
     form.setValue("query", ticker, { shouldValidate: true });
-    router.push(`/analyze/${ticker}`);
+    await openReport(ticker);
+  }
+
+  async function openReport(ticker: string) {
+    try {
+      const response = await fetch(`/api/reports/${encodeURIComponent(ticker)}`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Report generation failed");
+      }
+
+      router.push(`/r/${encodeURIComponent(ticker)}`);
+    } catch {
+      setIsNavigating(false);
+      form.setError("query", {
+        message: "Analysis did not finish. Try again in a moment.",
+      });
+    }
   }
 
   function closeSuggestions() {

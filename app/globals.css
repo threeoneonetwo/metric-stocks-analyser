@@ -190,8 +190,7 @@ input {
   border: 2px solid var(--metric-surface-variant);
 }
 
-.search-submit-loader,
-.analyze-route-loader {
+.search-submit-loader {
   animation: loadingSlide 1.05s ease-in-out infinite alternate;
   box-shadow: 3px 0 0 var(--metric-black);
   transform-origin: left center;
@@ -453,7 +452,6 @@ input {
   body::before,
   .scan-fill,
   .search-submit-loader,
-  .analyze-route-loader,
   .mover-list-track,
   .animate-entrance,
   .faq-answer,

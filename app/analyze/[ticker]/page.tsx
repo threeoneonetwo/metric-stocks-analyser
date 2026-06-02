@@ -1,10 +1,7 @@
-import { FooterBar, TopBar } from "@/components/site-chrome";
-import { AnalysisRunEvent } from "@/components/analytics-events";
 import { ensureReportForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { LoadingView } from "./loading-view";
 
 type AnalyzePageProps = {
   params: Promise<{ ticker: string }>;
@@ -28,15 +25,6 @@ export default async function AnalyzePage({ params, searchParams }: AnalyzePageP
   }
 
   const normalizedTicker = resolved.data.ticker;
-  const displayName = resolved.data.companyName;
   await ensureReportForTicker(normalizedTicker, { refresh: refresh === "1" });
-
-  return (
-    <main className="min-h-screen pb-14">
-      <AnalysisRunEvent ticker={normalizedTicker} companyName={displayName} refresh={refresh === "1"} />
-      <TopBar />
-      <LoadingView ticker={normalizedTicker} companyName={displayName} />
-      <FooterBar />
-    </main>
-  );
+  redirect(`/r/${encodeURIComponent(normalizedTicker)}`);
 }
