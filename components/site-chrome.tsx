@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Menu, RefreshCw, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ShareReportButton } from "@/components/share-report-button";
 
 type TopBarProps = {
@@ -80,7 +80,46 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
           </div>
         )}
       </div>
+      {reportActions ? <HeaderScrollProgress /> : null}
     </header>
+  );
+}
+
+function HeaderScrollProgress() {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let animationFrame = 0;
+
+    function updateProgress() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const nextProgress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+      setProgress(Math.min(100, Math.max(0, nextProgress)));
+    }
+
+    function scheduleUpdate() {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(updateProgress);
+    }
+
+    updateProgress();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+    };
+  }, []);
+
+  return (
+    <div className="absolute bottom-[-4px] left-0 h-[3px] w-full overflow-hidden bg-transparent" aria-hidden="true">
+      <div
+        className="scroll-progress-fill h-full bg-metric-finance-accent transition-[width] duration-100 ease-linear"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
   );
 }
 

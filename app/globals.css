@@ -202,6 +202,12 @@ input {
   will-change: transform;
 }
 
+.scroll-progress-fill {
+  box-shadow:
+    0 0 8px rgba(79, 143, 198, 0.95),
+    0 0 16px rgba(79, 143, 198, 0.5);
+}
+
 .faq-trigger {
   transition: background-color 140ms ease, color 140ms ease;
 }
