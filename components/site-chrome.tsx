@@ -19,7 +19,7 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="border-b-4 border-black bg-metric-cream neo-shadow">
+    <header className="relative z-50 border-b-4 border-black bg-metric-cream neo-shadow">
       <div className="mx-auto flex h-10 max-w-[42rem] items-center justify-between px-4 py-1.5">
         <Link
           href="/"
@@ -63,7 +63,7 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
             {menuOpen ? (
               <nav
                 aria-label="Main menu"
-                className="absolute right-0 top-12 w-44 border-4 border-black bg-white p-2 neo-shadow"
+                className="absolute right-0 top-12 z-50 w-44 border-4 border-black bg-white p-2 neo-shadow"
               >
                 {menuLinks.map(([label, href]) => (
                   <a
