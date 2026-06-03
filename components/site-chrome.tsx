@@ -23,9 +23,10 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
       <div className="mx-auto flex h-10 max-w-[42rem] items-center justify-between px-4 py-1.5">
         <Link
           href="/"
-          className="text-[30px] font-extrabold leading-none tracking-[-0.04em] text-black"
+          className="flex items-center gap-1.5 text-[30px] font-extrabold leading-none tracking-[-0.04em] text-black"
           style={{ fontWeight: 800 }}
         >
+          <img src="/chart-arrow.png" alt="" className="chart-arrow-icon" style={{ width: 22, height: 22, objectFit: "contain" }} />
           metric
         </Link>
         {reportActions ? (

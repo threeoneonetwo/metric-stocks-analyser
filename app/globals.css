@@ -338,6 +338,17 @@ input {
   animation-delay: 0.4s;
 }
 
+.chart-arrow-icon {
+  animation: chartBounce 2s ease-in-out infinite;
+  transform-origin: bottom left;
+}
+
+@keyframes chartBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-3px) scale(1.08); }
+  60% { transform: translateY(-1px) scale(1.04); }
+}
+
 @keyframes backgroundDrift {
   from {
     background-position: 0 0;
