@@ -38,7 +38,7 @@ export function HomeFaq() {
     <section className="animate-entrance delay-4 surface p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2
-          className="text-[25px] italic leading-none text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
+          className="text-[25px] leading-none text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
           style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 700 }}
         >
           Questions, answered
