@@ -17,6 +17,17 @@ const menuLinks = [
 
 export function TopBar({ reportActions = false, ticker, companyName }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pageLoaded, setPageLoaded] = useState(false);
+
+  useEffect(() => {
+    if (document.readyState === "complete") {
+      setPageLoaded(true);
+    } else {
+      const handler = () => setPageLoaded(true);
+      window.addEventListener("load", handler);
+      return () => window.removeEventListener("load", handler);
+    }
+  }, []);
 
   return (
     <header className="relative z-50 border-b-4 border-black bg-metric-cream neo-shadow">
@@ -26,7 +37,7 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
           className="flex items-center gap-1.5 text-[30px] font-extrabold leading-none tracking-[-0.04em] text-black"
           style={{ fontWeight: 800 }}
         >
-          <img src="/chart-arrow.png" alt="" className="chart-arrow-icon" style={{ width: 22, height: 22, objectFit: "contain" }} />
+          <img src="/chart-arrow.png" alt="" className={pageLoaded ? undefined : "chart-arrow-icon"} style={{ width: 22, height: 22, objectFit: "contain" }} />
           metric
         </Link>
         {reportActions ? (
