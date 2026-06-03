@@ -48,6 +48,16 @@ export function TickerSearch() {
   const queryField = form.register("query");
 
   useEffect(() => {
+    function handleMoverSelect(event: Event) {
+      const ticker = (event as CustomEvent<{ ticker: string }>).detail.ticker;
+      form.setValue("query", ticker, { shouldValidate: false });
+      setTimeout(() => openSuggestion(ticker), 500);
+    }
+    window.addEventListener("mover-select", handleMoverSelect);
+    return () => window.removeEventListener("mover-select", handleMoverSelect);
+  }, []);
+
+  useEffect(() => {
     if (query.length < 2) {
       setLiveSuggestions([]);
       setSearchState("idle");

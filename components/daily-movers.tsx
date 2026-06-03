@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Mover = {
@@ -77,10 +76,16 @@ function MoverCard({ mover, rank }: { mover: Mover; rank: number }) {
   const isUp = mover.changePercent >= 0;
   const shortName = cleanCompanyName(mover.companyName);
 
+  function handleClick() {
+    window.dispatchEvent(new CustomEvent("mover-select", { detail: { ticker: mover.ticker } }));
+    document.getElementById("ticker-search")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   return (
-    <Link
-      href={`/analyze/${encodeURIComponent(mover.ticker)}`}
-      className="neo-press relative block min-h-[174px] w-[138px] shrink-0 snap-start border-4 border-black bg-white p-2.5 text-black neo-shadow-sm"
+    <button
+      type="button"
+      onClick={handleClick}
+      className="neo-press relative block min-h-[174px] w-[138px] shrink-0 snap-start border-4 border-black bg-white p-2.5 text-left text-black neo-shadow-sm"
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <p className="font-mono text-[9px] font-black uppercase leading-3 tracking-[0.03em] text-black">
@@ -104,7 +109,7 @@ function MoverCard({ mover, rank }: { mover: Mover; rank: number }) {
       <div className="overflow-hidden border-2 border-black bg-metric-finance-bg">
         <MiniChart isUp={isUp} seed={rank} />
       </div>
-    </Link>
+    </button>
   );
 }
 
