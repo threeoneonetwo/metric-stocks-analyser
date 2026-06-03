@@ -37,7 +37,10 @@ export function HomeFaq() {
   return (
     <section className="animate-entrance delay-4 surface p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[25px] font-black leading-none tracking-[-0.02em] text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]">
+        <h2
+          className="text-[25px] italic leading-none text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
+          style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 700 }}
+        >
           Questions, answered
         </h2>
         <span className="border-2 border-black bg-metric-finance-accent-soft px-2 py-1 font-mono text-[9px] font-black uppercase tracking-[0.08em] text-metric-blue">

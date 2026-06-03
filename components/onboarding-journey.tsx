@@ -171,7 +171,7 @@ export function OnboardingJourney() {
                 <p className="font-mono text-[10px] font-black uppercase tracking-[0.12em] text-metric-blue">
                   {step.eyebrow}
                 </p>
-                <h2 id="metric-onboarding-title" className="text-[27px] font-black leading-[0.96] tracking-[-0.04em] text-black">
+                <h2 id="metric-onboarding-title" className="text-[27px] italic leading-[0.96] text-black" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 700 }}>
                   {step.title}
                 </h2>
               </div>

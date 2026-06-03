@@ -54,8 +54,8 @@ export function DailyMovers() {
     <section className="animate-entrance delay-4 -mx-4 w-[calc(100%+2rem)] sm:-mx-6 sm:w-[calc(100%+3rem)]">
       <div className="mb-[18px] text-center">
         <h2
-          className="text-[25px] font-black leading-none tracking-[-0.02em] text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
-          style={{ fontWeight: 900 }}
+          className="text-[25px] italic leading-none text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
+          style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 700 }}
         >
           Biggest movers of the day
         </h2>
