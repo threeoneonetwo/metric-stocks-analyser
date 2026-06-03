@@ -19,6 +19,35 @@ type YahooSearchResponse = {
   }>;
 };
 
+type YahooQuoteSummaryResponse = {
+  quoteSummary?: {
+    result?: Array<{
+      defaultKeyStatistics?: {
+        trailingPE?: { raw?: number };
+        forwardPE?: { raw?: number };
+        priceToBook?: { raw?: number };
+        enterpriseToEbitda?: { raw?: number };
+        trailingEps?: { raw?: number };
+        dividendYield?: { raw?: number };
+      };
+      financialData?: {
+        returnOnEquity?: { raw?: number };
+        returnOnAssets?: { raw?: number };
+        profitMargins?: { raw?: number };
+        grossMargins?: { raw?: number };
+        operatingMargins?: { raw?: number };
+        revenueGrowth?: { raw?: number };
+        earningsGrowth?: { raw?: number };
+        debtToEquity?: { raw?: number };
+        currentRatio?: { raw?: number };
+        quickRatio?: { raw?: number };
+        totalDebt?: { raw?: number };
+        freeCashflow?: { raw?: number };
+      };
+    }>;
+  };
+};
+
 type YahooChartResponse = {
   chart?: {
     result?: Array<{
@@ -97,7 +126,15 @@ export const yahooMarketData: MarketDataService = {
       fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh,
       fiftyTwoWeekLow: meta.fiftyTwoWeekLow,
     });
-    const fundamentals = await getUpstoxFundamentalsForTicker(resolved.data.ticker);
+
+    const [upstoxFundamentals, yahooSummary] = await Promise.all([
+      getUpstoxFundamentalsForTicker(resolved.data.ticker),
+      getYahooQuoteSummary(resolved.data.symbol),
+    ]);
+
+    const fundamentalMetrics = upstoxFundamentals.ok
+      ? upstoxFundamentals.data.metrics
+      : buildYahooFundamentalMetrics(yahooSummary);
 
     return {
       ok: true,
@@ -125,7 +162,7 @@ export const yahooMarketData: MarketDataService = {
           sector: resolved.data.sector,
           industry: resolved.data.industry,
         }),
-        metrics: fundamentals.ok ? [...fundamentals.data.metrics, ...priceMetrics] : priceMetrics,
+        metrics: [...fundamentalMetrics, ...priceMetrics],
       },
     };
   },
@@ -281,6 +318,43 @@ async function getYahooJson<T>(url: string, fallbackError: string): Promise<Resu
       error: error instanceof Error ? error.message : fallbackError,
     };
   }
+}
+
+async function getYahooQuoteSummary(symbol: string): Promise<YahooQuoteSummaryResponse | null> {
+  const result = await getYahooJson<YahooQuoteSummaryResponse>(
+    `${YAHOO_BASE_URL}/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=defaultKeyStatistics,financialData`,
+    "Yahoo quoteSummary failed.",
+  );
+  return result.ok ? result.data : null;
+}
+
+function buildYahooFundamentalMetrics(summary: YahooQuoteSummaryResponse | null): MarketSnapshot["metrics"] {
+  if (!summary) return [];
+  const stats = summary.quoteSummary?.result?.[0]?.defaultKeyStatistics;
+  const fin = summary.quoteSummary?.result?.[0]?.financialData;
+  if (!stats && !fin) return [];
+
+  const entries: Array<[string, number | undefined, string?]> = [
+    ["P/E Ratio", stats?.trailingPE?.raw],
+    ["P/B Ratio", stats?.priceToBook?.raw],
+    ["EV/EBITDA", stats?.enterpriseToEbitda?.raw],
+    ["ROE", fin?.returnOnEquity?.raw !== undefined ? fin.returnOnEquity.raw * 100 : undefined, "%"],
+    ["ROA", fin?.returnOnAssets?.raw !== undefined ? fin.returnOnAssets.raw * 100 : undefined, "%"],
+    ["Net Margin", fin?.profitMargins?.raw !== undefined ? fin.profitMargins.raw * 100 : undefined, "%"],
+    ["Gross Margin", fin?.grossMargins?.raw !== undefined ? fin.grossMargins.raw * 100 : undefined, "%"],
+    ["Revenue Growth", fin?.revenueGrowth?.raw !== undefined ? fin.revenueGrowth.raw * 100 : undefined, "% YoY"],
+    ["Debt/Equity", fin?.debtToEquity?.raw],
+    ["Current Ratio", fin?.currentRatio?.raw],
+    ["Quick Ratio", fin?.quickRatio?.raw],
+  ];
+
+  return entries
+    .filter(([, val]) => val !== undefined && val !== null && Number.isFinite(val))
+    .map(([label, val, suffix]) => ({
+      label: label as string,
+      value: suffix ? `${(val as number).toFixed(2)}${suffix}` : `${(val as number).toFixed(2)}x`,
+      median: "N/A",
+    }));
 }
 
 function buildMetrics(input: {
