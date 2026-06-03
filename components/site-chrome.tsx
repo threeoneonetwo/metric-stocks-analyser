@@ -23,10 +23,10 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
       <div className="mx-auto flex h-10 max-w-[42rem] items-center justify-between px-4 py-1.5">
         <Link
           href="/"
-          className="italic leading-none text-black"
-          style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 700, fontSize: 28 }}
+          className="text-[30px] font-extrabold leading-none tracking-[-0.04em] text-black"
+          style={{ fontWeight: 800 }}
         >
-          mf
+          metric
         </Link>
         {reportActions ? (
           <div className="flex items-center gap-3">
