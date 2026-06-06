@@ -1,8 +1,10 @@
 import { getStoredReport, logGenerationJob, saveReport } from "@/db/reports";
 import type { ReportPayload, ReportSourceData } from "@/db/types";
+import { generateMetricBrief, generateReportInsights } from "@/services/ai/metric-brief";
 import { generateReportPayload, REPORT_PROMPT_VERSION } from "@/services/ai/report-generator";
 import { getMarketDataService } from "@/services/marketData";
 import type { MarketSnapshot } from "@/services/marketData/types";
+import { getTradientSignals } from "@/services/tradient";
 import { getMockReport } from "./mock-report";
 
 const REPORT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -14,12 +16,13 @@ export async function getReportForTicker(ticker: string): Promise<ReportPayload>
 
 export async function getReportViewForTicker(
   ticker: string,
-): Promise<{ payload: ReportPayload; sourceData?: ReportSourceData }> {
+): Promise<{ payload: ReportPayload; sourceData?: ReportSourceData; generatedAt?: Date }> {
   const storedReport = await getStoredReport(ticker);
   if (storedReport && isUsableStoredReport(storedReport)) {
     return {
       payload: storedReport.payload,
       sourceData: storedReport.sourceData,
+      generatedAt: storedReport.generatedAt,
     };
   }
 
@@ -29,6 +32,7 @@ export async function getReportViewForTicker(
   return {
     payload,
     sourceData: refreshedReport?.sourceData,
+    generatedAt: refreshedReport?.generatedAt,
   };
 }
 
@@ -56,7 +60,8 @@ export async function ensureReportForTicker(
     marketSnapshot = marketData.ok && marketData.data.source !== "mock" ? marketData.data : undefined;
     marketDataError = marketData.ok ? undefined : marketData.error;
     const generatedReport = await generateReportPayload(ticker, marketSnapshot);
-    const savedReport = await saveReport(generatedReport.payload, {
+    const enhancedPayload = await attachAiSections(generatedReport.payload, marketSnapshot);
+    const savedReport = await saveReport(enhancedPayload, {
       ...generatedReport.sourceData,
       generatedReason: options.refresh ? "refresh" : "cache-miss",
       marketDataError,
@@ -69,7 +74,7 @@ export async function ensureReportForTicker(
       outcome: savedReport ? "ready" : "skipped_no_database",
     });
 
-    return savedReport?.payload ?? generatedReport.payload;
+    return savedReport?.payload ?? enhancedPayload;
   } catch (error) {
     if (marketSnapshot) {
       const fallbackReport = buildMarketDataReport(ticker, marketSnapshot);
@@ -125,7 +130,17 @@ function isUsableStoredReport(report: {
     return false;
   }
 
-  if (report.sourceData.provider === "gemini" && report.sourceData.promptVersion !== REPORT_PROMPT_VERSION) {
+  if (
+    (report.sourceData.provider === "gemini" || report.sourceData.provider === "claude") &&
+    report.sourceData.promptVersion !== REPORT_PROMPT_VERSION
+  ) {
+    return false;
+  }
+
+  if (
+    (report.sourceData.provider === "gemini" || report.sourceData.provider === "claude") &&
+    (!report.payload.metricBrief || !report.payload.insights)
+  ) {
     return false;
   }
 
@@ -134,6 +149,36 @@ function isUsableStoredReport(report: {
   }
 
   return isFresh(report.generatedAt);
+}
+
+async function attachAiSections(payload: ReportPayload, marketSnapshot: MarketSnapshot | undefined): Promise<ReportPayload> {
+  try {
+    const signalsResult = await getTradientSignals({ ticker: payload.ticker, companyName: payload.companyName });
+    const signals = signalsResult.ok ? signalsResult.data : null;
+    const [insights, metricBrief] = await Promise.all([
+      generateReportInsights({
+        companyName: payload.companyName,
+        marketData: marketSnapshot,
+        metrics: payload.metrics,
+        signals,
+      }),
+      generateMetricBrief({
+        companyName: payload.companyName,
+        marketData: marketSnapshot,
+        metrics: payload.metrics,
+        signals,
+      }),
+    ]);
+
+    return {
+      ...payload,
+      metricBrief: metricBrief ?? payload.metricBrief ?? null,
+      insights: insights ?? payload.insights ?? null,
+      insightsGeneratedAt: insights || metricBrief ? new Date().toISOString() : payload.insightsGeneratedAt ?? null,
+    };
+  } catch {
+    return payload;
+  }
 }
 
 function isMockPayload(payload: ReportPayload) {

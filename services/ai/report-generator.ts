@@ -1,3 +1,4 @@
+import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
@@ -5,7 +6,7 @@ import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { getMockReport } from "@/domain/mock-report";
 import type { MarketSnapshot } from "@/services/marketData/types";
 
-export const REPORT_PROMPT_VERSION = 3;
+export const REPORT_PROMPT_VERSION = 7;
 
 const generatedMetricSchema = z.object({
   label: z.string().min(1),
@@ -35,7 +36,7 @@ export type GeneratedReportResult = {
 };
 
 export function canGenerateAiReport() {
-  return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  return Boolean(process.env.ANTHROPIC_API_KEY) || Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 }
 
 export async function generateReportPayload(
@@ -65,19 +66,23 @@ export async function generateReportPayload(
     `Generate a Metric Finance equity intelligence brief for ticker ${ticker}.`,
     `Use analyzedAt exactly as: ${analyzedAt}.`,
     marketData
-      ? `Use this market data as the factual source. Do not contradict it: ${JSON.stringify(marketData)}`
-      : "No market data provider response is available. Use N/A for unavailable market fields.",
-    "The report must be useful for a mobile UI and must fit the provided schema.",
-    "Write like an IIM Ahmedabad-trained equity analyst writing for a smart investor before market action: direct, evidence-led, commercially literate, and calm.",
-    "Make the prose sound human. Avoid robotic connector phrases, repeated sentence frames, and generic AI language. Do not over-explain obvious data.",
-    "Do not sound like a template. Vary sentence structure. Do not repeat phrases such as 'the next question', 'this means', 'market setup', 'latest snapshot', 'single number', or 'before buying' across fields.",
-    "Make the overview a business-quality read: what the company does, where the operating leverage or fragility is likely to sit, and what the current market data can and cannot confirm.",
-    "Make the summary a single polished analyst paragraph that synthesizes price action, volume, 52-week position, valuation/quality placeholders, peer context, and news/technical signals into a coherent view.",
-    "Use six metric rows. If marketData.metrics contains Upstox key ratios, prioritize those exact ratio values and sector benchmark medians before using price-only fields. Each row must include label, value, yoy, and median. Use N/A only where the supplied data cannot support a number.",
-    "Use exactly three peer labels: the main ticker followed by the top two direct listed competitors from the market data peers field.",
-    "Avoid buy, sell, hold, accumulate, avoid, target price, stop loss, multibagger, guaranteed, and recommendation language. Do not add disclaimers. Explain implications, trade-offs, and missing evidence.",
+      ? `Market data (treat as ground truth, do not contradict): ${JSON.stringify(marketData)}`
+      : "No market data available. Use N/A for unavailable market fields.",
+    "",
+    "CRITICAL RULE: The reader can already see every number on screen. Do NOT restate data points. Your only job is to interpret what the data means — causes, implications, risks, trade-offs, what would change the view.",
+    "Wrong: 'The stock is up +0.92% today.' Right: 'The move is too small to distinguish from noise unless volume confirms conviction — it does not yet.'",
+    "Wrong: 'The 52-week position is 33%.' Right: 'Sitting in the lower third of its range tells you the stock has not recovered from whatever drove the prior selloff — the question is whether that overhang has cleared.'",
+    "Wrong: 'EBITDA Margin is ~11.5% vs sector median 10.8%.' Right: 'Above-median margins suggest pricing power or cost discipline is holding, but the YoY direction matters more — expanding margins compound, contracting ones don\\'t.'",
+    "",
+    "overview: Explain the business model in one sentence, then where the real operating leverage or fragility sits — not what the company does generically, but what drives or kills the profit line. Do not repeat market data.",
+    "summary: One analyst paragraph. Interpret the full picture: what the price position relative to its range implies about sentiment, whether volume gives that move credibility, what peer behaviour reveals about sector vs company-specific drivers, and what the fundamentals confirm or leave unresolved. Every sentence must add a new interpretive point. No sentence should restate a number the reader already sees.",
+    "Use six metric rows. Prioritize Upstox key ratios and sector benchmark medians where available. Each row needs label, value, yoy, median.",
+    "Use exactly three peer labels: this ticker plus the top two direct competitors from the peers field.",
+    "Avoid buy, sell, hold, accumulate, avoid, target price, stop loss, multibagger, guaranteed, recommendation language, and disclaimers.",
+    "Never use dashes in any text field — no em dashes, en dashes, or hyphens used as sentence punctuation. Use commas, semicolons, or full stops instead.",
   ].join("\n");
-  const { object, modelId } = await generateWithModelFallback(prompt);
+
+  const { object, modelId, provider } = await generateWithModelFallback(prompt);
 
   return {
     payload: applyMarketData(
@@ -85,6 +90,8 @@ export async function generateReportPayload(
         ...object,
         ticker,
         analyzedAt,
+        overview: stripDashes(object.overview),
+        summary: stripDashes(object.summary),
         metrics: object.metrics.map((metric) => [
           metric.label,
           metric.value,
@@ -95,7 +102,7 @@ export async function generateReportPayload(
       marketData,
     ),
     sourceData: {
-      provider: "gemini",
+      provider,
       generatedReason: "cache-miss",
       ticker,
       aiModel: modelId,
@@ -105,29 +112,68 @@ export async function generateReportPayload(
   };
 }
 
+const SYSTEM_PROMPT =
+  "You are a senior Indian equities analyst writing for a smart investor who can already see all the numbers. Never describe or restate data — only interpret it. Every sentence must answer 'so what?' or 'why does this matter?'. Anchor reasoning to supplied data, surface trade-offs and missing evidence, and write in direct, commercial prose. Do not invent live prices. Use 'N/A' for unavailable fields. Avoid buy, sell, hold, target price, stop loss, and recommendation language. Never use dashes (em dashes, en dashes, or hyphens used as punctuation) in prose — use commas, semicolons, or full stops instead.";
+
 async function generateWithModelFallback(prompt: string) {
-  const modelIds = getGeminiModelIds();
   const errors: string[] = [];
 
-  for (const modelId of modelIds) {
+  if (process.env.ANTHROPIC_API_KEY) {
+    const claudeModelId = process.env.CLAUDE_MODEL ?? "claude-haiku-4-5";
     try {
-      const { object } = await generateObject({
-        model: google(modelId),
-        schema: reportPayloadSchema,
-        schemaName: "MetricFinanceEquityReport",
-        temperature: 0.45,
-        system:
-          "You are a senior Indian equities analyst. Write concise, high-signal research prose for NSE and BSE listed companies. Sound like a trained finance professional, not a chatbot or marketing page. Anchor every claim to supplied data, identify trade-offs, and avoid generic filler. Do not invent live prices. If exact live market data is unavailable, use 'N/A' for price and dayChange. Avoid buy, sell, hold, target price, stop loss, and recommendation language.",
-        prompt,
-      });
-
-      return { object, modelId };
+      const result = await withTimeout(
+        generateObject({
+          model: anthropic(claudeModelId),
+          schema: reportPayloadSchema,
+          schemaName: "MetricFinanceEquityReport",
+          temperature: 0.45,
+          system: SYSTEM_PROMPT,
+          prompt,
+        }),
+        12000,
+      );
+      if (!result) {
+        throw new Error("Timed out");
+      }
+      return { object: result.object, modelId: claudeModelId, provider: "claude" as const };
     } catch (error) {
-      errors.push(`${modelId}: ${error instanceof Error ? error.message : "Unknown Gemini error"}`);
+      errors.push(`${claudeModelId}: ${error instanceof Error ? error.message : "Unknown Claude error"}`);
     }
   }
 
-  throw new Error(`Gemini generation failed for all configured models. ${errors.join(" | ")}`);
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    const geminiModelIds = getGeminiModelIds();
+    for (const modelId of geminiModelIds) {
+      try {
+        const result = await withTimeout(
+          generateObject({
+            model: google(modelId),
+            schema: reportPayloadSchema,
+            schemaName: "MetricFinanceEquityReport",
+            temperature: 0.45,
+            system: SYSTEM_PROMPT,
+            prompt,
+          }),
+          12000,
+        );
+        if (!result) {
+          throw new Error("Timed out");
+        }
+        return { object: result.object, modelId, provider: "gemini" as const };
+      } catch (error) {
+        errors.push(`${modelId}: ${error instanceof Error ? error.message : "Unknown Gemini error"}`);
+      }
+    }
+  }
+
+  throw new Error(`Report generation failed for all configured models. ${errors.join(" | ")}`);
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
 }
 
 function getGeminiModelIds() {
@@ -175,4 +221,13 @@ function formatPercent(value: number | null) {
 
   const prefix = value > 0 ? "+" : "";
   return `${prefix}${value.toFixed(2)}%`;
+}
+
+function stripDashes(text: string): string {
+  return text
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s*–\s*/g, ", ")
+    .replace(/(\w)\s*-\s*(\w)/g, "$1 $2")
+    .replace(/,\s*,/g, ",")
+    .trim();
 }

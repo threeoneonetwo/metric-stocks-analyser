@@ -1,7 +1,7 @@
 import type { Result } from "@/services/result";
 import { getPeerComparisonLabels } from "@/domain/competitors";
 import { getKnownIsin } from "@/domain/isin-directory";
-import { getUpstoxFundamentalsForTicker } from "@/services/fundamentals/upstox";
+import { getFmpFundamentalsForTicker } from "@/services/fundamentals/fmp";
 import type { MarketDataService, MarketSnapshot, MarketSymbol } from "./types";
 
 type YahooSearchResponse = {
@@ -127,13 +127,13 @@ export const yahooMarketData: MarketDataService = {
       fiftyTwoWeekLow: meta.fiftyTwoWeekLow,
     });
 
-    const [upstoxFundamentals, yahooSummary] = await Promise.all([
-      getUpstoxFundamentalsForTicker(resolved.data.ticker),
+    const [fmpFundamentals, yahooSummary] = await Promise.all([
+      getFmpFundamentalsForTicker(resolved.data.ticker),
       getYahooQuoteSummary(resolved.data.symbol),
     ]);
 
-    const fundamentalMetrics = upstoxFundamentals.ok
-      ? upstoxFundamentals.data.metrics
+    const fundamentalMetrics = fmpFundamentals.ok
+      ? fmpFundamentals.data.metrics
       : buildYahooFundamentalMetrics(yahooSummary);
 
     return {
@@ -299,6 +299,7 @@ async function getYahooJson<T>(url: string, fallbackError: string): Promise<Resu
         "User-Agent": "MetricFinance/0.1",
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(6000),
     });
     const payload = (await response.json()) as T;
 

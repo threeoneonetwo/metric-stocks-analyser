@@ -390,6 +390,7 @@ async function getTradientJson<T>(url: string): Promise<Result<T>> {
         ...(process.env.TRADIENT_API_KEY ? { Authorization: `Bearer ${process.env.TRADIENT_API_KEY}` } : {}),
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!response.ok) {
@@ -418,6 +419,7 @@ async function getRssXml(url: string): Promise<Result<string>> {
         "User-Agent": "MetricFinance/0.1",
       },
       next: { revalidate: 15 * 60 },
+      signal: AbortSignal.timeout(6000),
     });
 
     if (!response.ok) {

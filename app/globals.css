@@ -53,6 +53,7 @@ html {
   min-height: 100%;
   min-height: 100dvh;
   background: var(--metric-ink);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -81,15 +82,34 @@ body > main {
   width: 100%;
 }
 
+@media (min-width: 1024px) {
+  html,
+  body {
+    background: var(--background);
+  }
+
+  body > main {
+    box-shadow: none;
+    max-width: 100%;
+  }
+}
+
 body > main::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.275) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
-  animation: backgroundDrift 60s linear infinite;
   z-index: -1;
+}
+
+@media (min-width: 1024px) {
+  .mover-list-track {
+    animation-duration: 40s;
+  }
 }
 
 button,
@@ -132,7 +152,9 @@ input {
 }
 
 .terminal-grid {
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.225) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -188,6 +210,23 @@ input {
 .search-dropdown-list::-webkit-scrollbar-thumb {
   background: var(--metric-black);
   border: 2px solid var(--metric-surface-variant);
+}
+
+.mover-fade {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
 }
 
 .search-submit-loader {
@@ -482,4 +521,96 @@ input {
     transform: none !important;
     transition: none !important;
   }
+}
+
+/* ── Shared dark glassmorphism ── */
+
+.glass-panel {
+  background: #060d1c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+}
+
+.dot-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.linear-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 400px;
+  background: radial-gradient(circle at 50% 0%, rgba(184, 196, 255, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Homepage dark theme ── */
+
+body > main.homepage {
+  background: transparent;
+  max-width: 100%;
+  box-shadow: none;
+}
+
+body > main.homepage::before {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  body > main.homepage {
+    max-width: 100%;
+    box-shadow: none;
+  }
+}
+
+/* ── Report page dark theme ── */
+
+body > main.report-page {
+  background: transparent;
+  max-width: 100%;
+  box-shadow: none;
+}
+
+body > main.report-page::before {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  body > main.report-page {
+    max-width: 100%;
+    box-shadow: none;
+  }
+}
+
+/* ── Dark mover cards ── */
+
+.dark-tile {
+  background: #060d1c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.dark-tile:hover {
+  background: #0d1830;
+  border-color: rgba(184, 196, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.dark-mover-card {
+  background: rgba(23, 31, 51, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  transition: background 140ms ease;
+}
+
+.dark-mover-card:hover {
+  background: rgba(30, 41, 59, 0.85);
 }

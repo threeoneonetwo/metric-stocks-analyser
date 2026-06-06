@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Clock3, Search, Sparkles, TrendingUp, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,14 +30,14 @@ const searchSuggestions: SearchSuggestion[] = [
   { ticker: "INFY", name: "Infosys", meta: "IT services", source: "static" },
   { ticker: "TATAMOTORS", name: "Tata Motors", meta: "Autos", source: "static" },
   { ticker: "BHARTIARTL", name: "Bharti Airtel", meta: "Telecom", source: "static" },
-];
+  ];
 
-export function TickerSearch() {
-  const router = useRouter();
+export function TickerSearch({ dark = false }: { dark?: boolean }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [liveSuggestions, setLiveSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchState, setSearchState] = useState<"idle" | "loading" | "ready">("idle");
+  const containerRef = useRef<HTMLDivElement>(null);
   const form = useForm<TickerForm>({
     resolver: zodResolver(tickerSchema),
     defaultValues: { query: "" },
@@ -94,16 +93,7 @@ export function TickerSearch() {
   async function onSubmit(values: TickerForm) {
     const query = values.query.trim();
     setIsNavigating(true);
-    const ticker = await resolveTicker(query);
-    if (ticker) {
-      await openReport(ticker);
-      return;
-    }
-
-    setIsNavigating(false);
-    form.setError("query", {
-      message: "Could not find that NSE/BSE stock. Try the company name or exact ticker.",
-    });
+    await openReport(query);
   }
 
   async function openSuggestion(ticker: string) {
@@ -114,22 +104,7 @@ export function TickerSearch() {
   }
 
   async function openReport(ticker: string) {
-    try {
-      const response = await fetch(`/api/reports/${encodeURIComponent(ticker)}`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Report generation failed");
-      }
-
-      router.push(`/r/${encodeURIComponent(ticker)}`);
-    } catch {
-      setIsNavigating(false);
-      form.setError("query", {
-        message: "Analysis did not finish. Try again in a moment.",
-      });
-    }
+    window.location.assign(`/analyze/${encodeURIComponent(ticker)}`);
   }
 
   function closeSuggestions() {
@@ -137,6 +112,96 @@ export function TickerSearch() {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
+  }
+
+  if (dark) {
+    return (
+      <div ref={containerRef} className="w-full" style={{ position: "relative" }}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex w-full flex-col gap-0"
+          onBlur={() => window.setTimeout(() => setIsDropdownOpen(false), 120)}
+        >
+          <div
+            className="flex items-center p-1.5 rounded-xl transition-all duration-300"
+            style={{ background: "rgba(23,31,51,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <Search className="shrink-0 ml-3 text-[#90909a]" size={18} strokeWidth={2} />
+            <input
+              aria-label="Company name or stock ticker"
+              aria-expanded={isDropdownOpen}
+              aria-haspopup="listbox"
+              aria-controls="ticker-search-dropdown-dark"
+              placeholder="Search ticker (e.g. HDFCBANK)"
+              role="combobox"
+              suppressHydrationWarning
+              className="flex-grow bg-transparent border-none text-white placeholder:text-[#90909a] focus:ring-0 text-base py-3 px-3 outline-none"
+              name={queryField.name}
+              ref={queryField.ref}
+              onBlur={queryField.onBlur}
+              onChange={(event) => { setIsDropdownOpen(true); void queryField.onChange(event); }}
+              onFocus={() => setIsDropdownOpen(true)}
+              onClick={() => setIsDropdownOpen(true)}
+            />
+            <button
+              className="rounded-lg mr-1 text-[#0b1326] bg-[#b8c4ff] hover:bg-[#dde1ff] active:scale-95 transition-all disabled:cursor-wait disabled:opacity-70 shrink-0"
+              style={{ padding: "6px 14px", fontFamily: "Arial, sans-serif", fontWeight: 800, fontSize: "12px", letterSpacing: "0.05em" }}
+              disabled={form.formState.isSubmitting || isNavigating}
+            >
+              {form.formState.isSubmitting || isNavigating ? "..." : "RUN"}
+            </button>
+          </div>
+          {(form.formState.isSubmitting || isNavigating) && (
+            <div className="mt-2 rounded-lg overflow-hidden" style={{ background: "rgba(23,31,51,0.6)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="h-1 overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
+                <div className="search-submit-loader h-full w-1/2" style={{ background: "#b8c4ff", boxShadow: "3px 0 0 #b8c4ff" }} />
+              </div>
+            </div>
+          )}
+          {form.formState.errors.query?.message ? (
+            <p className="mt-2 text-xs text-[#f43f5e]" style={{ fontFamily: "Arial, sans-serif" }}>{form.formState.errors.query.message}</p>
+          ) : null}
+        </form>
+        {isDropdownOpen && visibleSuggestions.length > 0 ? (
+          <div
+            id="ticker-search-dropdown-dark"
+            role="listbox"
+            className="rounded-xl overflow-hidden search-dropdown"
+            style={{
+              position: "absolute",
+              top: "calc(100% + 8px)",
+              left: 0,
+              right: 0,
+              background: "#080f1e",
+              border: "1px solid rgba(255,255,255,0.12)",
+              zIndex: 99999,
+              boxShadow: "0 24px 48px rgba(0,0,0,0.95)",
+            }}
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            <div className="search-dropdown-list max-h-72 overflow-y-auto">
+              {visibleSuggestions.map((item, index) => (
+                <button
+                  key={`${item.symbol ?? item.ticker}-${index}`}
+                  type="button"
+                  role="option"
+                  aria-selected="false"
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left hover:bg-white/5 transition-colors"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                  onClick={() => openSuggestion(item.ticker)}
+                >
+                  <span className="min-w-0">
+                    <span className="block font-mono text-sm font-bold text-white uppercase tracking-wide">{item.ticker}</span>
+                    <span className="block truncate text-xs text-[#8e909f] mt-0.5">{item.companyName ?? item.name}</span>
+                  </span>
+                  <span className="shrink-0 text-[10px] text-[#b8c4ff] font-mono">{item.meta ?? item.exchange ?? "NSE"}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -251,18 +316,4 @@ export function TickerSearch() {
       ) : null}
     </form>
   );
-}
-
-async function resolveTicker(query: string) {
-  try {
-    const response = await fetch(`/api/resolve?query=${encodeURIComponent(query)}`);
-    const payload = (await response.json()) as {
-      result?: { ticker?: string };
-      error?: string;
-    };
-
-    return payload.result?.ticker ?? null;
-  } catch {
-    return null;
-  }
 }

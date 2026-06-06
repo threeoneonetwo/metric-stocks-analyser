@@ -118,6 +118,7 @@ async function getUpstoxJson<T>(url: string): Promise<Result<T>> {
         Authorization: `Bearer ${process.env.UPSTOX_ACCESS_TOKEN}`,
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     const payload = (await response.json()) as T;
 

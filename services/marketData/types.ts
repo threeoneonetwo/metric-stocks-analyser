@@ -8,6 +8,7 @@ export type MarketSymbol = {
   sector: string | null;
   industry: string | null;
   isin?: string | null;
+  instrumentKey?: string | null;
 };
 
 export type MarketSnapshot = {
@@ -27,7 +28,7 @@ export type MarketSnapshot = {
   fiftyTwoWeekHigh: number | null;
   fiftyTwoWeekLow: number | null;
   asOf: string | null;
-  source: "openalgo" | "yahoo" | "mock";
+  source: "openalgo" | "upstox" | "yahoo" | "fmp" | "mock";
   sourceUrl: string | null;
   peers: string[];
   metrics: Array<{
