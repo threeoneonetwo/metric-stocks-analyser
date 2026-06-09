@@ -166,29 +166,31 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </div>
       </header>
 
-      {/* Content — mobile-width centered */}
-      <div className="mx-auto w-full max-w-[430px] px-4 pt-6 pb-24 flex flex-col gap-5">
+      {/* Content — single column on mobile, full-width dashboard on desktop */}
+      <div className="mx-auto w-full max-w-[430px] lg:max-w-[1320px] px-4 lg:px-10 pt-6 lg:pt-10 pb-24 flex flex-col gap-5 lg:gap-6">
 
         {/* ── Hero header ── */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className="px-2 py-0.5 rounded text-[9px] font-bold tracking-widest text-[#a8b8ff]"
-              style={{ background: "rgba(30,64,175,0.6)", border: "1px solid rgba(168,184,255,0.3)" }}
-            >
-              {report.ticker}
-            </span>
-            {marketData?.sector && (
-              <span className="text-[9px] text-[#8e909f] px-2 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)" }}>
-                {marketData.sector}
+        <div className="lg:flex lg:items-end lg:justify-between lg:gap-8">
+          <div className="lg:flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className="px-2 py-0.5 rounded text-[9px] font-bold tracking-widest text-[#a8b8ff]"
+                style={{ background: "rgba(30,64,175,0.6)", border: "1px solid rgba(168,184,255,0.3)" }}
+              >
+                {report.ticker}
               </span>
-            )}
-            <span className="text-[#8e909f] text-[9px] ml-auto">{formatTimestamp(marketData?.asOf ?? null)}</span>
+              {marketData?.sector && (
+                <span className="text-[9px] text-[#8e909f] px-2 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)" }}>
+                  {marketData.sector}
+                </span>
+              )}
+              <span className="text-[#8e909f] text-[9px] ml-auto lg:ml-3">{formatTimestamp(marketData?.asOf ?? null)}</span>
+            </div>
+            <h1 className="text-[1.75rem] lg:text-4xl font-bold leading-tight text-white mb-5 lg:mb-0 tracking-tight">
+              {report.companyName}
+            </h1>
           </div>
-          <h1 className="text-[1.75rem] font-bold leading-tight text-white mb-5 tracking-tight">
-            {report.companyName}
-          </h1>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:gap-4 lg:w-[420px] lg:shrink-0">
             <div className="glass-panel p-4 flex flex-col">
               <span className="text-[9px] text-[#8e909f] uppercase tracking-wider mb-2 font-mono">Current Price</span>
               <div className="text-2xl font-bold text-[#b8c4ff] tracking-tight">{displayPrice}</div>
@@ -202,16 +204,20 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </div>
 
+        {/* ── Dashboard grid: main analysis + sidebar on desktop ── */}
+        <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
+        <div className="contents lg:flex lg:flex-col lg:gap-6 lg:col-span-2 lg:min-w-0">
+
         {/* ── Before You Buy ── */}
-        <section className="glass-panel p-5">
+        <section className="glass-panel p-5 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[#b8c4ff]">
               Before You Buy
             </h2>
             <span className="text-[9px] text-[#8e909f] opacity-60 uppercase tracking-widest">Analyst Brief</span>
           </div>
-          <p className="text-sm text-[#dae2fd] leading-relaxed mb-5">{report.summary}</p>
-          <div className="grid grid-cols-2 gap-4 pt-4" style={{ borderTop: `1px solid ${G}` }}>
+          <p className="text-sm lg:text-[15px] text-[#dae2fd] leading-relaxed mb-5">{report.summary}</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4" style={{ borderTop: `1px solid ${G}` }}>
             {[signalTiles[0], signalTiles[3], signalTiles[6], signalTiles[7]].map((tile) => (
               <div key={tile.label}>
                 <p className="text-[9px] text-[#8e909f] uppercase tracking-wider mb-1">{tile.label}</p>
@@ -223,7 +229,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         {/* ── Range Position ── */}
-        <section className="glass-panel p-5">
+        <section className="glass-panel p-5 lg:p-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold text-[#dae2fd]">Range Position</h2>
             <span
@@ -249,7 +255,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         {/* ── Metric Brief ── */}
-        <section className="glass-panel p-5">
+        <section className="glass-panel p-5 lg:p-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold text-[#dae2fd]">Metric Brief</h2>
             <Link href={`/analyze/${report.ticker}?refresh=1`} className="p-1.5 text-[#8e909f] rounded-full hover:bg-white/5" aria-label="Refresh">
@@ -258,6 +264,61 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
           <p className="text-sm text-[#c4c5d5] leading-relaxed">{metricBrief}</p>
         </section>
+
+        {/* ── News Sentiment ── */}
+        <section className="glass-panel p-5 lg:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-[#dae2fd]">News Sentiment</h2>
+            <span
+              className="px-2 py-0.5 rounded-full text-[9px] font-medium text-[#dae2fd]"
+              style={{ background: "rgba(45,52,73,1)" }}
+            >
+              {newsPrimary.toUpperCase()}
+            </span>
+          </div>
+          <div className="flex gap-1 h-1.5 rounded-full overflow-hidden mb-5">
+            <div className="bg-[#4ade80] h-full rounded-full" style={{ width: `${(newsCounts.positive / newsTotal) * 100}%` }} />
+            <div className="bg-white/20 h-full" style={{ width: `${(newsCounts.neutral / newsTotal) * 100}%` }} />
+            <div className="bg-[#f43f5e] h-full rounded-full" style={{ width: `${(newsCounts.negative / newsTotal) * 100}%` }} />
+          </div>
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            {([["Positive", newsCounts.positive, "#4ade80"], ["Neutral", newsCounts.neutral, "#8e909f"], ["Negative", newsCounts.negative, "#f43f5e"]] as const).map(([label, count, color]) => (
+              <div key={label} className="rounded-lg p-2 text-center" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
+                <p className="text-[8px] uppercase tracking-wider" style={{ color }}>{label}</p>
+                <p className="text-xl font-bold text-[#dae2fd] mt-1">{count}</p>
+              </div>
+            ))}
+          </div>
+          {newsContextText && (
+            <p className="text-xs text-[#8e909f] leading-relaxed mb-4">{newsContextText}</p>
+          )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {(signals?.news ?? []).length > 0 ? (
+              signals!.news.map((item) => (
+                <div key={`${item.title}-${item.publishedAt}`} className="rounded-lg p-3" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[8px] font-bold text-[#b8c4ff] uppercase tracking-wider">{item.source}</span>
+                    <span className="text-[8px] text-[#8e909f] uppercase">{item.sentiment}</span>
+                  </div>
+                  {item.url ? (
+                    <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#dae2fd] leading-snug underline decoration-white/20 underline-offset-2 line-clamp-2">
+                      {item.title}
+                    </a>
+                  ) : (
+                    <p className="text-sm font-semibold text-[#dae2fd] leading-snug line-clamp-2">{item.title}</p>
+                  )}
+                  {item.summary && <p className="mt-1.5 text-xs text-[#8e909f] leading-relaxed">{item.summary}</p>}
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-[#8e909f] text-center py-4 lg:col-span-2">No matched headlines in the latest batch.</p>
+            )}
+          </div>
+        </section>
+        </div>
+
+        {/* ── Sidebar column on desktop ── */}
+        <div className="contents lg:flex lg:flex-col lg:gap-6 lg:min-w-0">
 
         {/* ── Business Quality ── */}
         <section className="glass-panel p-5">
@@ -361,57 +422,6 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </section>
         )}
 
-        {/* ── News Sentiment ── */}
-        <section className="glass-panel p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-[#dae2fd]">News Sentiment</h2>
-            <span
-              className="px-2 py-0.5 rounded-full text-[9px] font-medium text-[#dae2fd]"
-              style={{ background: "rgba(45,52,73,1)" }}
-            >
-              {newsPrimary.toUpperCase()}
-            </span>
-          </div>
-          <div className="flex gap-1 h-1.5 rounded-full overflow-hidden mb-5">
-            <div className="bg-[#4ade80] h-full rounded-full" style={{ width: `${(newsCounts.positive / newsTotal) * 100}%` }} />
-            <div className="bg-white/20 h-full" style={{ width: `${(newsCounts.neutral / newsTotal) * 100}%` }} />
-            <div className="bg-[#f43f5e] h-full rounded-full" style={{ width: `${(newsCounts.negative / newsTotal) * 100}%` }} />
-          </div>
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            {([["Positive", newsCounts.positive, "#4ade80"], ["Neutral", newsCounts.neutral, "#8e909f"], ["Negative", newsCounts.negative, "#f43f5e"]] as const).map(([label, count, color]) => (
-              <div key={label} className="rounded-lg p-2 text-center" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
-                <p className="text-[8px] uppercase tracking-wider" style={{ color }}>{label}</p>
-                <p className="text-xl font-bold text-[#dae2fd] mt-1">{count}</p>
-              </div>
-            ))}
-          </div>
-          {newsContextText && (
-            <p className="text-xs text-[#8e909f] leading-relaxed mb-4">{newsContextText}</p>
-          )}
-          <div className="space-y-4">
-            {(signals?.news ?? []).length > 0 ? (
-              signals!.news.map((item) => (
-                <div key={`${item.title}-${item.publishedAt}`} className="rounded-lg p-3" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[8px] font-bold text-[#b8c4ff] uppercase tracking-wider">{item.source}</span>
-                    <span className="text-[8px] text-[#8e909f] uppercase">{item.sentiment}</span>
-                  </div>
-                  {item.url ? (
-                    <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#dae2fd] leading-snug underline decoration-white/20 underline-offset-2 line-clamp-2">
-                      {item.title}
-                    </a>
-                  ) : (
-                    <p className="text-sm font-semibold text-[#dae2fd] leading-snug line-clamp-2">{item.title}</p>
-                  )}
-                  {item.summary && <p className="mt-1.5 text-xs text-[#8e909f] leading-relaxed">{item.summary}</p>}
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-[#8e909f] text-center py-4">No matched headlines in the latest batch.</p>
-            )}
-          </div>
-        </section>
-
         {/* ── What Could Matter ── */}
         <section className="glass-panel p-5">
           <h2 className="text-base font-semibold text-[#dae2fd] mb-4">What Could Matter</h2>
@@ -431,24 +441,26 @@ export default async function ReportPage({ params }: ReportPageProps) {
             })}
           </div>
         </section>
+        </div>
+        </div>
 
         {/* ── Verdict ── */}
-        <section className="rounded-xl p-6 mb-2" style={{ background: "linear-gradient(135deg, rgba(30,64,175,0.2) 0%, rgba(11,19,38,0.4) 100%)", border: "1px solid rgba(184,196,255,0.25)" }}>
+        <section className="rounded-xl p-6 lg:p-8 mb-2" style={{ background: "linear-gradient(135deg, rgba(30,64,175,0.2) 0%, rgba(11,19,38,0.4) 100%)", border: "1px solid rgba(184,196,255,0.25)" }}>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1.5 h-5 rounded-full bg-[#b8c4ff]" />
             <h2 className="text-lg font-bold text-[#b8c4ff] tracking-tight">Analyst Verdict</h2>
           </div>
           {verdict ? (
-            <p className="text-sm text-[#c4c5d5] leading-[1.8] mb-6">{verdict}</p>
+            <p className="text-sm lg:text-[15px] text-[#c4c5d5] leading-[1.8] mb-6 lg:max-w-4xl">{verdict}</p>
           ) : (
-            <p className="text-sm text-[#c4c5d5] leading-[1.8] mb-6">
+            <p className="text-sm lg:text-[15px] text-[#c4c5d5] leading-[1.8] mb-6 lg:max-w-4xl">
               Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data.
             </p>
           )}
           <ShareReportButton
             ticker={report.ticker}
             companyName={report.companyName}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm text-[#0b1326] bg-[#b8c4ff] hover:bg-[#dde1ff] transition-colors"
+            className="w-full lg:w-auto lg:px-10 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm text-[#0b1326] bg-[#b8c4ff] hover:bg-[#dde1ff] transition-colors"
           />
         </section>
       </div>
