@@ -422,14 +422,17 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </section>
         )}
 
+        </div>
+        </div>
+
         {/* ── What Could Matter ── */}
-        <section className="glass-panel p-5">
+        <section className="glass-panel p-5 lg:p-6">
           <h2 className="text-base font-semibold text-[#dae2fd] mb-4">What Could Matter</h2>
-          <div className="space-y-3">
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-stretch">
             {riskCards.map(({ Icon, title, copy, stripe }) => {
               const stripeColor = stripe === "bg-metric-red" ? "#f43f5e" : stripe === "bg-metric-pink" ? "#ffb4ab" : "#4ade80";
               return (
-                <div key={title} className="relative overflow-hidden rounded-lg p-3 pl-4" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
+                <div key={title} className="relative overflow-hidden rounded-lg p-3 pl-4 lg:p-4 lg:pl-5" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
                   <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg" style={{ background: stripeColor }} />
                   <div className="flex items-center gap-2 mb-1.5">
                     <Icon size={14} strokeWidth={2} style={{ color: stripeColor }} />
@@ -441,8 +444,6 @@ export default async function ReportPage({ params }: ReportPageProps) {
             })}
           </div>
         </section>
-        </div>
-        </div>
 
         {/* ── Verdict ── */}
         <section className="rounded-xl p-6 lg:p-8 mb-2" style={{ background: "linear-gradient(135deg, rgba(30,64,175,0.2) 0%, rgba(11,19,38,0.4) 100%)", border: "1px solid rgba(184,196,255,0.25)" }}>
