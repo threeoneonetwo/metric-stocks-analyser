@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { AlertTriangle, Bolt, RefreshCw, TrendingDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReportViewEvent } from "@/components/analytics-events";
@@ -12,6 +13,7 @@ import type { MarketSnapshot } from "@/services/marketData/types";
 import { getTradientSignals } from "@/services/tradient";
 import type { TradientSignal } from "@/services/tradient";
 import { notFound } from "next/navigation";
+import { getVisitorMetadata } from "@/lib/request-metadata";
 
 type ReportPageProps = {
   params: Promise<{ ticker: string }>;
@@ -52,7 +54,10 @@ export default async function ReportPage({ params }: ReportPageProps) {
   const resolved = await resolveTickerQuery(decodeURIComponent(ticker));
   if (!resolved.ok) notFound();
 
-  const reportView = await getReportViewForTicker(resolved.data.ticker);
+  const headerStore = await headers();
+  const reportView = await getReportViewForTicker(resolved.data.ticker, {
+    visitor: getVisitorMetadata(headerStore),
+  });
   const report = reportView.payload;
   const freshMarketData = shouldFetchFreshMarketData(reportView.generatedAt)
     ? await getFreshMarketData(resolved.data.ticker, resolved.data.symbol)
@@ -111,8 +116,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
     const aiCopy = i === 0 ? aiInsights?.valuationRisk : i === 1 ? aiInsights?.earningsRisk : aiInsights?.marketTiming;
     return aiCopy ? { ...card, copy: aiCopy } : card;
   });
-  const templateVerdict = buildWhatThisMeans({ marketData, marketRead, rangeRead, volumeRead, metrics: displayMetrics, signals, metricBrief });
-  const verdict = aiInsights?.whatThisMeans ?? templateVerdict;
+  const verdict = aiInsights?.whatThisMeans ?? null;
   const rangePositionText = aiInsights?.rangePosition ?? rangeRead.meaning;
   const newsContextText = aiInsights?.newsContext ?? null;
   const rangePos = getRangePosition(marketData);
@@ -434,7 +438,13 @@ export default async function ReportPage({ params }: ReportPageProps) {
             <div className="w-1.5 h-5 rounded-full bg-[#b8c4ff]" />
             <h2 className="text-lg font-bold text-[#b8c4ff] tracking-tight">Analyst Verdict</h2>
           </div>
-          <p className="text-sm text-[#c4c5d5] leading-[1.8] mb-6">{verdict}</p>
+          {verdict ? (
+            <p className="text-sm text-[#c4c5d5] leading-[1.8] mb-6">{verdict}</p>
+          ) : (
+            <p className="text-sm text-[#c4c5d5] leading-[1.8] mb-6">
+              Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data.
+            </p>
+          )}
           <ShareReportButton
             ticker={report.ticker}
             companyName={report.companyName}
@@ -452,7 +462,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           Built by{" "}
           <a href="https://www.linkedin.com/in/yashnapandugala/" target="_blank" rel="noreferrer" className="text-[#dae2fd] underline underline-offset-2">Yashna</a>
           {" "}&{" "}
-          <a href="https://www.linkedin.com/in/vansh-sharma-/" target="_blank" rel="noreferrer" className="text-[#dae2fd] underline underline-offset-2">Vansh</a>
+          <a href="https://www.linkedin.com/in/vanshpandita-real/" target="_blank" rel="noreferrer" className="text-[#dae2fd] underline underline-offset-2">Vansh</a>
           {" "}• Not financial advice
         </p>
       </footer>
@@ -564,22 +574,9 @@ function buildRiskCards(input: {
   ];
 }
 
-function buildWhatThisMeans(input: { marketData: MarketSnapshot | undefined; marketRead: AnalysisRead; rangeRead: AnalysisRead; volumeRead: AnalysisRead; metrics: Array<[string, string, string, string]>; signals: TradientSignal | null; metricBrief: string }) {
-  const valuation = getMetricSignal(input.metrics, /p\/?e|valuation|ev/i);
-  const quality = getMetricSignal(input.metrics, /roe|roce|margin|profit|quality/i);
-  const balanceSheet = getMetricSignal(input.metrics, /debt|d\/?e|risk|quick|current ratio|interest coverage/i);
-  const newsSignal = getNewsSentimentSummary(input.signals);
-  const technical = input.signals?.technicals[0];
-  const fundamentals = [valuation ? `valuation reads as ${valuation}` : null, quality ? `quality reads as ${quality}` : null, balanceSheet ? `risk/liquidity reads as ${balanceSheet}` : null].filter(Boolean).join("; ");
-  if (fundamentals || technical || newsSignal.label !== "No News") {
-    return [input.marketRead.meaning, input.rangeRead.meaning, fundamentals ? `On fundamentals, ${fundamentals}.` : null, technical ? `Technically, ${technical.label} at ${technical.value} says this: ${technical.meaning}` : null, newsSignal.label !== "No News" ? `News flow is ${newsSignal.label.toLowerCase()} (${newsSignal.detail}).` : null, fundamentals ? "The cleaner conclusion comes from alignment: price, peer action, business quality, balance-sheet comfort, and news should be read together." : "Until deeper fundamentals arrive, the cleanest read is whether price, volume, peers, technicals, and news are telling the same story."].filter(Boolean).join(" ");
-  }
-  return input.metricBrief;
-}
-
 function buildSignalTiles(input: { displayDayChange: string; marketData: MarketSnapshot | undefined; marketRead: AnalysisRead; rangeRead: AnalysisRead; volumeRead: AnalysisRead; metrics: Array<[string, string, string, string]>; signals: TradientSignal | null }) {
   const metric = (pattern: RegExp) => input.metrics.find(([label]) => pattern.test(label) && isFundamentalMetricLabel(label));
-  const valuation = metric(/p\/?e|valuation/i);
+  const valuation = metric(/p\/?e|p\/?b|ev\/?ebitda|valuation/i);
   const quality = metric(/roe|roce|margin|profit/i);
   const debt = metric(/debt|d\/?e|risk|quick|current ratio|interest coverage/i);
   const technical = input.signals?.technicals[0];
@@ -589,12 +586,31 @@ function buildSignalTiles(input: { displayDayChange: string; marketData: MarketS
     { label: "Price Action", value: input.displayDayChange, meaning: input.marketRead.label.replace("Market Signal: ", ""), tone: "accent" as const },
     { label: "Volume", value: formatNumber(input.marketData?.volume ?? null), meaning: input.volumeRead.label.replace("Volume Context: ", ""), tone: "white" as const },
     { label: "52W Position", value: `${getRangePosition(input.marketData)}%`, meaning: input.rangeRead.label.replace("Range Context: ", ""), tone: "white" as const },
-    { label: "Valuation", value: valuation?.[1] ?? "Pending", meaning: valuation ? `${valuation[2]} YoY` : "Awaiting ratios", tone: "dark" as const },
+    { label: "Valuation", value: valuation ? formatValuationTileValue(valuation) : "Pending", meaning: valuation ? formatMetricTileContext(valuation, "Current multiple") : "Awaiting ratios", tone: "dark" as const },
     { label: "Business Quality", value: quality?.[1] ?? "Mixed", meaning: quality ? `${quality[0]} vs ${quality[3]}` : "Awaiting ratios", tone: "white" as const },
     { label: "Debt / Risk", value: debt?.[1] ?? "Check", meaning: debt ? `${debt[0]} vs ${debt[3]}` : "Awaiting leverage", tone: "white" as const },
     { label: "Technical Setup", value: technical?.value ?? "N/A", meaning: technical?.label ?? "Tradient signal", tone: "accent" as const },
     { label: "News Signal", value: newsSignal.label, meaning: newsCount ? `${newsSignal.detail} · ${newsCount} matched` : "No exact match", tone: "white" as const },
   ];
+}
+
+function formatValuationTileValue(metric: [string, string, string, string]) {
+  const [label, value] = metric;
+  const shortLabel = label
+    .replace(/ ratio$/i, "")
+    .replace(/^price[- ]?to[- ]?/i, "P/")
+    .replace(/^enterprise value ?\/ ?ebitda$/i, "EV/EBITDA");
+  const unitValue = /p\/?e|p\/?b|ev\/?ebitda|ratio|valuation/i.test(label) && /^-?\d+(\.\d+)?$/.test(value)
+    ? `${value}x`
+    : value;
+  return `${shortLabel} ${unitValue}`;
+}
+
+function formatMetricTileContext(metric: [string, string, string, string], fallback: string) {
+  const [, , yoy, median] = metric;
+  if (isMeaningfulMetricMovement(yoy)) return `${yoy} YoY`;
+  if (median && median !== "N/A") return `Median ${median}`;
+  return fallback;
 }
 
 function getRangePosition(marketData: MarketSnapshot | undefined) {
@@ -665,7 +681,7 @@ function getRangeRead(marketData: MarketSnapshot | undefined): AnalysisRead {
   const high = marketData?.fiftyTwoWeekHigh;
   const low = marketData?.fiftyTwoWeekLow;
   if (price == null || high == null || low == null || high === low) return { label: "Range Context: Unavailable", meaning: "The 52-week range is incomplete, so the report cannot place the price inside its recent trading band yet." };
-  const position = ((price - low) / (high - low)) * 100;
+  const position = getRangePosition(marketData);
   if (position >= 75) return { label: "Range Context: Upper Band", meaning: `The current price sits around ${position.toFixed(0)}% through its 52-week range. That puts it closer to the yearly high, where valuation support and earnings delivery matter more.` };
   if (position <= 25) return { label: "Range Context: Lower Band", meaning: `The current price sits around ${position.toFixed(0)}% through its 52-week range. That puts it near the lower band, where the key question is whether weakness is temporary or fundamental.` };
   return { label: "Range Context: Middle Band", meaning: `The current price sits around ${position.toFixed(0)}% through its 52-week range. It is not at an obvious extreme, so peers and business quality carry more weight.` };

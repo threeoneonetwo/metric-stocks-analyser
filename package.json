@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
-    "@ai-sdk/google": "^3.0.79",
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^1.1.0",
     "@vercel/analytics": "^2.0.1",
@@ -42,5 +41,22 @@
     "eslint-config-next": "^15.5.18",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "description": "Metric Finance generates AI-powered equity research reports for NSE and BSE listed stocks. Enter any ticker and get a shareable analysis covering executive summary, contrarian signal, financials, peer comparison, sentiment, and risks.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/threeoneonetwo/metric-stocks-analyser.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/threeoneonetwo/metric-stocks-analyser/issues"
+  },
+  "homepage": "https://github.com/threeoneonetwo/metric-stocks-analyser#readme"
 }

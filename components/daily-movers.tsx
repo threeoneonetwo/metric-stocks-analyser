@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Mover = {
@@ -50,7 +51,7 @@ export function DailyMovers() {
   }, []);
 
   return (
-    <section className="animate-entrance delay-4 -mx-4 w-[calc(100%+2rem)] sm:-mx-6 sm:w-[calc(100%+3rem)]">
+    <section className="animate-entrance delay-4 -mx-4 w-[calc(100%+2rem)] sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]">
       <div className="mb-[18px] text-center">
         <h2
           className="text-[25px] leading-none text-black [text-shadow:0.45px_0_0_#000,-0.45px_0_0_#000]"
@@ -60,14 +61,13 @@ export function DailyMovers() {
         </h2>
       </div>
 
-      <div className="overflow-hidden px-1 pb-3">
+      <div className="mover-fade overflow-hidden px-1 pb-3">
         <div className="mover-list-track flex w-max gap-3">
           {[...movers, ...movers].map((mover, index) => (
             <MoverCard key={`${mover.ticker}-${index}`} mover={mover} rank={(index % movers.length) + 1} />
           ))}
         </div>
       </div>
-
     </section>
   );
 }
@@ -76,40 +76,34 @@ function MoverCard({ mover, rank }: { mover: Mover; rank: number }) {
   const isUp = mover.changePercent >= 0;
   const shortName = cleanCompanyName(mover.companyName);
 
-  function handleClick() {
-    window.dispatchEvent(new CustomEvent("mover-select", { detail: { ticker: mover.ticker } }));
-    document.getElementById("ticker-search")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="neo-press relative block min-h-[174px] w-[138px] shrink-0 snap-start border-4 border-black bg-white p-2.5 text-left text-black neo-shadow-sm"
+    <Link
+      href={`/r/${mover.ticker}`}
+      className="dark-mover-card relative block min-h-[174px] w-[138px] shrink-0 snap-start p-2.5 text-left"
     >
       <div className="mb-2 flex items-start justify-between gap-2">
-        <p className="font-mono text-[9px] font-black uppercase leading-3 tracking-[0.03em] text-black">
+        <p className="font-mono text-[9px] font-black uppercase leading-3 tracking-[0.03em] text-[#8e909f]">
           {rank.toString().padStart(2, "0")}
         </p>
-        <p className={`font-mono text-[10px] font-black leading-3 ${isUp ? "text-metric-green" : "text-metric-red"}`}>
+        <p className={`font-mono text-[10px] font-black leading-3 ${isUp ? "text-[#4ade80]" : "text-[#f43f5e]"}`}>
           {isUp ? "▲" : "▼"} {Math.abs(mover.changePercent).toFixed(2)}%
         </p>
       </div>
 
-      <p className="font-mono text-[12px] font-black uppercase leading-4 tracking-[0.01em] text-black">
+      <p className="font-mono text-[12px] font-black uppercase leading-4 tracking-[0.01em] text-[#dbe2fd]">
         {mover.ticker}
       </p>
-      <p className="line-clamp-2 min-h-8 text-[10px] font-bold uppercase leading-4 tracking-[0.01em] text-metric-muted">
+      <p className="line-clamp-2 min-h-8 text-[10px] font-bold uppercase leading-4 tracking-[0.01em] text-[#8e909f]">
         {shortName}
       </p>
-      <p className="mb-2 mt-1 font-mono text-[9px] font-black uppercase leading-3 text-black">
+      <p className="mb-2 mt-1 font-mono text-[9px] font-black uppercase leading-3 text-[#dbe2fd]">
         {formatPrice(mover.price)}
       </p>
 
-      <div className="overflow-hidden border-2 border-black bg-metric-finance-bg">
+      <div className="overflow-hidden rounded" style={{ background: "rgba(11,19,38,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}>
         <MiniChart isUp={isUp} seed={rank} />
       </div>
-    </button>
+    </Link>
   );
 }
 

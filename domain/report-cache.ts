@@ -6,6 +6,7 @@ import { getMarketDataService } from "@/services/marketData";
 import type { MarketSnapshot } from "@/services/marketData/types";
 import { getTradientSignals } from "@/services/tradient";
 import { getMockReport } from "./mock-report";
+import type { VisitorMetadata } from "@/lib/request-metadata";
 
 const REPORT_TTL_MS = 24 * 60 * 60 * 1000;
 const MARKET_DATA_FALLBACK_TTL_MS = 5 * 60 * 1000;
@@ -16,9 +17,18 @@ export async function getReportForTicker(ticker: string): Promise<ReportPayload>
 
 export async function getReportViewForTicker(
   ticker: string,
+  options: { visitor?: VisitorMetadata } = {},
 ): Promise<{ payload: ReportPayload; sourceData?: ReportSourceData; generatedAt?: Date }> {
   const storedReport = await getStoredReport(ticker);
   if (storedReport && isUsableStoredReport(storedReport)) {
+    await logGenerationJob({
+      ticker,
+      startedAt: new Date(),
+      cacheHit: true,
+      outcome: "cache_hit",
+      ...toGenerationVisitor(options.visitor),
+    });
+
     return {
       payload: storedReport.payload,
       sourceData: storedReport.sourceData,
@@ -26,7 +36,7 @@ export async function getReportViewForTicker(
     };
   }
 
-  const payload = await ensureReportForTicker(ticker, { refresh: Boolean(storedReport) });
+  const payload = await ensureReportForTicker(ticker, { refresh: Boolean(storedReport), visitor: options.visitor });
   const refreshedReport = await getStoredReport(ticker);
 
   return {
@@ -38,7 +48,7 @@ export async function getReportViewForTicker(
 
 export async function ensureReportForTicker(
   ticker: string,
-  options: { refresh?: boolean } = {},
+  options: { refresh?: boolean; visitor?: VisitorMetadata } = {},
 ): Promise<ReportPayload> {
   const startedAt = new Date();
   const storedReport = await getStoredReport(ticker);
@@ -51,6 +61,7 @@ export async function ensureReportForTicker(
       startedAt,
       cacheHit: true,
       outcome: "cache_hit",
+      ...toGenerationVisitor(options.visitor),
     });
     return storedReport.payload;
   }
@@ -72,13 +83,15 @@ export async function ensureReportForTicker(
       startedAt,
       cacheHit: false,
       outcome: savedReport ? "ready" : "skipped_no_database",
+      ...toGenerationVisitor(options.visitor),
     });
 
     return savedReport?.payload ?? enhancedPayload;
   } catch (error) {
     if (marketSnapshot) {
       const fallbackReport = buildMarketDataReport(ticker, marketSnapshot);
-      const savedReport = await saveReport(fallbackReport, {
+      const enhancedFallbackReport = await attachAiSections(fallbackReport, marketSnapshot);
+      const savedReport = await saveReport(enhancedFallbackReport, {
         provider: "market-data",
         generatedReason: options.refresh ? "refresh" : "cache-miss",
         ticker,
@@ -92,9 +105,10 @@ export async function ensureReportForTicker(
         cacheHit: false,
         outcome: savedReport ? "ready" : "skipped_no_database",
         errorMessage: error instanceof Error ? error.message : "AI generation failed; saved market-data fallback.",
+        ...toGenerationVisitor(options.visitor),
       });
 
-      return savedReport?.payload ?? fallbackReport;
+      return savedReport?.payload ?? enhancedFallbackReport;
     }
 
     await logGenerationJob({
@@ -103,6 +117,7 @@ export async function ensureReportForTicker(
       cacheHit: false,
       outcome: "error",
       errorMessage: error instanceof Error ? error.message : "Unknown report generation error",
+      ...toGenerationVisitor(options.visitor),
     });
 
     if (storedReport && isUsableStoredReport(storedReport)) {
@@ -111,6 +126,16 @@ export async function ensureReportForTicker(
 
     return getMockReport(ticker);
   }
+}
+
+function toGenerationVisitor(visitor: VisitorMetadata | undefined) {
+  return {
+    ipHash: visitor?.ipHash,
+    visitorCountry: visitor?.country,
+    visitorRegion: visitor?.region,
+    visitorCity: visitor?.city,
+    visitorTimezone: visitor?.timezone,
+  };
 }
 
 function isFresh(generatedAt: Date) {
@@ -130,17 +155,25 @@ function isUsableStoredReport(report: {
     return false;
   }
 
+  if (report.sourceData.provider === "gemini") {
+    return false;
+  }
+
   if (
-    (report.sourceData.provider === "gemini" || report.sourceData.provider === "claude") &&
+    report.sourceData.provider === "claude" &&
     report.sourceData.promptVersion !== REPORT_PROMPT_VERSION
   ) {
     return false;
   }
 
   if (
-    (report.sourceData.provider === "gemini" || report.sourceData.provider === "claude") &&
+    report.sourceData.provider === "claude" &&
     (!report.payload.metricBrief || !report.payload.insights)
   ) {
+    return false;
+  }
+
+  if (report.sourceData.provider === "claude" && hasTemplateInsight(report.payload)) {
     return false;
   }
 
@@ -188,6 +221,22 @@ function isMockPayload(payload: ReportPayload) {
     combinedText.includes("placeholder fundamentals") ||
     combinedText.includes("layout fixtures")
   );
+}
+
+function hasTemplateInsight(payload: ReportPayload) {
+  const text = payload.insights?.whatThisMeans?.toLowerCase() ?? "";
+  const templatedPhrases = [
+    "sellers are setting the near-term tone",
+    "the next check is whether peers",
+    "the current price sits around",
+    "on fundamentals, valuation reads",
+    "technically, rsi at",
+    "news flow is",
+    "the cleaner conclusion comes from alignment",
+    "should be read together",
+  ];
+
+  return templatedPhrases.some((phrase) => text.includes(phrase));
 }
 
 function buildMarketDataReport(ticker: string, marketData: MarketSnapshot): ReportPayload {
@@ -269,7 +318,7 @@ function formatRangePosition(marketData: MarketSnapshot) {
     return "missing 52-week range context";
   }
 
-  const position = Math.round(((price - low) / (high - low)) * 100);
+  const position = Math.min(100, Math.max(0, Math.round(((price - low) / (high - low)) * 100)));
   if (position >= 75) {
     return `near the upper end of its 52-week band at roughly ${position}% of the range`;
   }

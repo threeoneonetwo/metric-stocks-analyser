@@ -35,9 +35,11 @@ const searchSuggestions: SearchSuggestion[] = [
 export function TickerSearch({ dark = false }: { dark?: boolean }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [liveSuggestions, setLiveSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchState, setSearchState] = useState<"idle" | "loading" | "ready">("idle");
   const containerRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const form = useForm<TickerForm>({
     resolver: zodResolver(tickerSchema),
     defaultValues: { query: "" },
@@ -103,8 +105,42 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
     await openReport(ticker);
   }
 
+  function stopProgress() {
+    if (progressRef.current) clearTimeout(progressRef.current);
+    setProgress(100);
+  }
+
   async function openReport(ticker: string) {
-    window.location.assign(`/analyze/${encodeURIComponent(ticker)}`);
+    setProgress(1);
+    try {
+      // Phase 1: resolve ticker (~1s) → fills first 15%
+      const resolveRes = await fetch(`/api/resolve?query=${encodeURIComponent(ticker)}`);
+      const resolveData = (await resolveRes.json()) as { result?: { ticker: string } };
+      const resolved = resolveData.result?.ticker ?? ticker;
+      setProgress(15);
+
+      // Phase 2: report generation (~10-20s) → time-based creep from 15% to 97%
+      const startTime = Date.now();
+      const estimatedMs = 16000;
+      const creep = () => {
+        const elapsed = Date.now() - startTime;
+        const ratio = Math.min(0.97, elapsed / estimatedMs);
+        // ease-out so it slows near the end
+        const eased = 1 - Math.pow(1 - ratio, 2);
+        setProgress(Math.round(15 + eased * 82));
+        if (ratio < 0.97) {
+          progressRef.current = setTimeout(creep, 250);
+        }
+      };
+      progressRef.current = setTimeout(creep, 250);
+
+      await fetch(`/api/reports/${encodeURIComponent(resolved)}`, { method: "POST" });
+      stopProgress();
+      window.location.assign(`/r/${encodeURIComponent(resolved)}`);
+    } catch {
+      stopProgress();
+      window.location.assign(`/analyze/${encodeURIComponent(ticker)}`);
+    }
   }
 
   function closeSuggestions() {
@@ -124,7 +160,7 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
         >
           <div
             className="flex items-center p-1.5 rounded-xl transition-all duration-300"
-            style={{ background: "rgba(23,31,51,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ position: "relative", background: "rgba(23,31,51,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}
           >
             <Search className="shrink-0 ml-3 text-[#90909a]" size={18} strokeWidth={2} />
             <input
@@ -145,19 +181,56 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
             />
             <button
               className="rounded-lg mr-1 text-[#0b1326] bg-[#b8c4ff] hover:bg-[#dde1ff] active:scale-95 transition-all disabled:cursor-wait disabled:opacity-70 shrink-0"
-              style={{ padding: "6px 14px", fontFamily: "Arial, sans-serif", fontWeight: 800, fontSize: "12px", letterSpacing: "0.05em" }}
+              style={{ padding: "6px 10px", fontFamily: "Arial, sans-serif", fontWeight: 800, fontSize: "12px", letterSpacing: "0.05em", minWidth: 60 }}
               disabled={form.formState.isSubmitting || isNavigating}
             >
-              {form.formState.isSubmitting || isNavigating ? "..." : "RUN"}
+              {(form.formState.isSubmitting || isNavigating) ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span
+                    style={{
+                      width: 10, height: 10, borderRadius: "50%",
+                      border: "2px solid rgba(11,19,38,0.25)",
+                      borderTopColor: "#0b1326",
+                      display: "inline-block",
+                      animation: "btn-spin 0.7s linear infinite",
+                      flexShrink: 0,
+                    }}
+                  />
+                  {progress}%
+                </span>
+              ) : "RUN"}
             </button>
-          </div>
-          {(form.formState.isSubmitting || isNavigating) && (
-            <div className="mt-2 rounded-lg overflow-hidden" style={{ background: "rgba(23,31,51,0.6)", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <div className="h-1 overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
-                <div className="search-submit-loader h-full w-1/2" style={{ background: "#b8c4ff", boxShadow: "3px 0 0 #b8c4ff" }} />
+            {/* Progress bar overlaid at the bottom of the search box */}
+            {(form.formState.isSubmitting || isNavigating) && (
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${progress}%`,
+                    background: "#b8c4ff",
+                    boxShadow: "0 0 8px #b8c4ff",
+                    transition: "width 0.25s ease",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Shimmer sweep */}
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)",
+                    animation: "bar-shimmer 1.2s ease-in-out infinite",
+                  }} />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            <style>{`
+              @keyframes btn-spin { to { transform: rotate(360deg); } }
+              @keyframes bar-shimmer {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(200%); }
+              }
+            `}</style>
+          </div>
           {form.formState.errors.query?.message ? (
             <p className="mt-2 text-xs text-[#f43f5e]" style={{ fontFamily: "Arial, sans-serif" }}>{form.formState.errors.query.message}</p>
           ) : null}

@@ -11,9 +11,7 @@ type TopBarProps = {
   companyName?: string;
 };
 
-const menuLinks = [
-  ["About", "https://metricfinance.notion.site/Metric-Finance-36dbc65fd7b380799a64ec4979735b20?source=copy_link"],
-];
+const menuLinks: [string, string][] = [];
 
 export function TopBar({ reportActions = false, ticker, companyName }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -31,7 +29,7 @@ export function TopBar({ reportActions = false, ticker, companyName }: TopBarPro
 
   return (
     <header className="relative z-50 border-b-4 border-black bg-metric-cream neo-shadow">
-      <div className="mx-auto flex h-10 max-w-[42rem] items-center justify-between px-4 py-1.5">
+      <div className="mx-auto flex h-10 w-full max-w-[42rem] items-center justify-between px-4 py-1.5 lg:max-w-none lg:px-10">
         <Link
           href="/"
           className="flex items-center gap-0 text-[30px] font-extrabold leading-none tracking-[-0.04em] text-black"
@@ -135,6 +133,41 @@ function HeaderScrollProgress() {
   );
 }
 
+export function DarkMenuButton() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        className="text-white/70 hover:text-white transition-colors p-1"
+        aria-expanded={menuOpen}
+        aria-label={menuOpen ? "Close menu" : "Open menu"}
+        onClick={() => setMenuOpen((c) => !c)}
+      >
+        {menuOpen ? <X size={22} strokeWidth={2} /> : <Menu size={22} strokeWidth={2} />}
+      </button>
+      {menuOpen && (
+        <nav
+          aria-label="Main menu"
+          className="absolute right-0 top-10 z-50 w-44 rounded-xl p-2"
+          style={{ background: "rgba(23,31,51,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {menuLinks.map(([label, href]) => (
+            <a
+              key={href}
+              href={href}
+              className="block rounded-lg px-4 py-3 text-sm font-semibold text-[#dbe2fd] hover:bg-white/10 transition-colors"
+              onClick={() => setMenuOpen(false)}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
 export function FooterBar() {
   return (
     <footer className="border-t-4 border-black bg-black px-4 py-3 text-center font-mono text-[9px] uppercase leading-none tracking-[0.1em] text-metric-surface-dim">
@@ -149,7 +182,7 @@ export function FooterBar() {
       </a>{" "}
       &{" "}
       <a
-        href="https://www.linkedin.com/in/vansh-sharma-/"
+        href="https://www.linkedin.com/in/vanshpandita-real/"
         target="_blank"
         rel="noreferrer"
         className="text-white underline underline-offset-2"

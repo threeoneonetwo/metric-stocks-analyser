@@ -66,6 +66,11 @@ export async function logGenerationJob(input: {
   ticker: string;
   startedAt: Date;
   completedAt?: Date;
+  ipHash?: string;
+  visitorCountry?: string;
+  visitorRegion?: string;
+  visitorCity?: string;
+  visitorTimezone?: string;
   cacheHit: boolean;
   outcome: "ready" | "cache_hit" | "skipped_no_database" | "error";
   errorMessage?: string;
@@ -83,6 +88,11 @@ export async function logGenerationJob(input: {
     .insert(generationJobs)
     .values({
       ticker: input.ticker,
+      ipHash: input.ipHash,
+      visitorCountry: input.visitorCountry,
+      visitorRegion: input.visitorRegion,
+      visitorCity: input.visitorCity,
+      visitorTimezone: input.visitorTimezone,
       startedAt: input.startedAt,
       completedAt,
       durationMs,

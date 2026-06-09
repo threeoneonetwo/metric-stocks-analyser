@@ -1,5 +1,4 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { google } from "@ai-sdk/google";
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import type { MarketSnapshot } from "@/services/marketData/types";
@@ -10,9 +9,6 @@ import type { TradientSignal } from "@/services/tradient";
 function getModel() {
   if (process.env.ANTHROPIC_API_KEY) {
     return anthropic(process.env.CLAUDE_INSIGHTS_MODEL ?? process.env.CLAUDE_MODEL ?? "claude-haiku-4-5");
-  }
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    return google(process.env.GEMINI_MODEL ?? "gemini-2.0-flash");
   }
   return null;
 }
@@ -25,7 +21,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
 }
 
 function hasAiConfig() {
-  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
 function buildMarketPayload(
@@ -40,7 +36,7 @@ function buildMarketPayload(
   const l52 = marketData?.fiftyTwoWeekLow;
   const rangePercent =
     p != null && h52 != null && l52 != null && h52 !== l52
-      ? Math.round(((p - l52) / (h52 - l52)) * 100)
+      ? clampPercent(Math.round(((p - l52) / (h52 - l52)) * 100))
       : null;
 
   return {
@@ -87,7 +83,7 @@ export async function generateMetricBrief(input: {
         maxOutputTokens: 400,
         temperature: 0.35,
       }),
-      12000,
+      25000,
     );
     if (!result) return null;
     return stripBriefDashes(result.text.trim()) || null;
@@ -130,7 +126,7 @@ export async function generatePeerInsight(input: {
   });
 
   const system =
-    "You are a financial data summarizer. Given market data for a stock and its peers, write a 100 to 120 word 'what this means' summary in one paragraph. Follow this exact structure: open with the day move and whether it is worth reading into based on volume and peer behavior, then reference the 52-week range position and what it implies, then bring in the valuation and quality metrics versus peer medians and what the gap suggests, then summarize the RSI reading and what it says about momentum, then close with the news sentiment score and a one-sentence conclusion about why alignment across all signals matters more than any single data point. Rules: ONLY reference exact numbers from the provided data. If a value is null, say it is not available. Write in plain, simple language. No bullet points. No headers. No dashes. No financial advice. Keep sentences short and direct.";
+    "You are a senior Indian equities analyst. Write one natural 90 to 120 word paragraph that explains what the peer setup means. Do not follow a fixed order. Start with the most useful contrast between the company and peers. Avoid generic lines about alignment, confirmation, or single data points. No bullet points. No headers. No dashes. No financial advice. Only reference numbers present in the data.";
 
   try {
     const { text } = await generateText({
@@ -183,7 +179,7 @@ export async function generateReportInsights(input: {
   const data = buildMarketPayload(input.companyName, input.marketData, input.metrics, input.signals);
 
   const system =
-    "You are a senior Indian equities analyst. Write sharp, specific, contextual analysis for each section. Interpret what the data means, not what it says. Take a clear point of view. Be specific to this company and this data. Never use generic language that could apply to any stock. No dashes of any kind (no em dashes, en dashes, or hyphens as punctuation). No bullet points. No financial advice. Only reference numbers present in the provided data.";
+    "You are a senior Indian equities analyst writing for a serious investor. Write like a person, not like a report template. Interpret what the data means, not what it says. Take a clear point of view, but do not recommend buying, selling, or holding. Be specific to this company and this exact data. Avoid generic scaffolding that could apply to any stock. Never use these phrases or close variants: sellers are setting the tone, current price sits, on fundamentals, technically, news flow is, the cleaner conclusion, alignment matters, read together. No dashes of any kind. No bullet points. Only reference numbers present in the provided data.";
 
   const prompt = `Analyse ${input.companyName} using ONLY this data:
 
@@ -197,7 +193,7 @@ Generate each field:
 - earningsRisk: 2-3 sentences. Use the quality and profitability metrics. What does the earnings quality data reveal about the durability of the business performance?
 - marketTiming: 2-3 sentences. Using the technical signals and news tone, what does the timing setup look like? Is the entry window compelling, cautious, or neutral?
 - newsContext: 1-2 sentences. What does the overall news tone and the top headline signal about market perception of this company right now?
-- whatThisMeans: 4-5 sentences. A decisive analyst verdict. Bring together price position, range, fundamentals, technicals, and news into one clear read. Take a position on what the setup means. Identify the key catalyst or risk that will determine whether the thesis plays out. End with what a disciplined investor should be monitoring.`;
+- whatThisMeans: One natural paragraph of 110-150 words, written like an analyst explaining the setup to a colleague. Do not follow the field order above. Start with the most interesting tension in the data, not with the daily price move unless that is genuinely the main story. Blend price action, range, fundamentals, technicals, and news into a single view. Use the company name or business context where possible. Avoid formulaic transitions such as "on fundamentals", "technically", or "news flow". End with the one thing that would most change the read.`;
 
   try {
     const result = await withTimeout(
@@ -209,7 +205,7 @@ Generate each field:
         prompt,
         temperature: 0.35,
       }),
-      15000,
+      30000,
     );
     if (!result) return null;
     return stripInsightDashes(result.object);
@@ -234,4 +230,8 @@ function stripInsightDashes(obj: ReportInsights): ReportInsights {
 
 function stripBriefDashes(s: string) {
   return s.replace(/\s*[—–]\s*/g, ", ").replace(/(\w)-(\w)/g, "$1 $2").replace(/,\s*,/g, ",").trim();
+}
+
+function clampPercent(value: number) {
+  return Math.min(100, Math.max(0, value));
 }

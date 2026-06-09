@@ -15,13 +15,6 @@ type UpstoxTokenResponse = {
 };
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === "production" && process.env.UPSTOX_OAUTH_ENABLED !== "true") {
-    return NextResponse.json(
-      { error: "Upstox OAuth callback is disabled in production." },
-      { status: 403 },
-    );
-  }
-
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const error = url.searchParams.get("error");
@@ -74,7 +67,9 @@ export async function GET(request: Request) {
     );
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV === "production") {
+    await saveVercelEnvToken(payload.access_token);
+  } else {
     await saveLocalAccessToken(payload.access_token);
   }
 
@@ -82,8 +77,8 @@ export async function GET(request: Request) {
     status: "ok",
     message:
       process.env.NODE_ENV === "production"
-        ? "Upstox access token generated."
-        : "Upstox access token generated and saved to .env.local. Restart the dev server before testing fundamentals.",
+        ? "Upstox token refreshed and saved to Vercel. Live in ~30s after next request."
+        : "Upstox access token saved to .env.local. Restart the dev server to apply.",
     tokenType: payload.token_type ?? "Bearer",
     expiresIn: payload.expires_in ?? null,
   });
@@ -91,6 +86,48 @@ export async function GET(request: Request) {
 
 function getRedirectUri(request: Request) {
   return process.env.UPSTOX_REDIRECT_URI ?? new URL("/api/upstox/callback", request.url).toString();
+}
+
+async function saveVercelEnvToken(accessToken: string) {
+  const vercelToken = process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  const teamId = process.env.VERCEL_TEAM_ID;
+
+  if (!vercelToken || !projectId) {
+    return;
+  }
+
+  const baseUrl = `https://api.vercel.com/v10/projects/${projectId}/env`;
+  const params = teamId ? `?teamId=${teamId}` : "";
+
+  const listRes = await fetch(`${baseUrl}${params}`, {
+    headers: { Authorization: `Bearer ${vercelToken}` },
+  });
+
+  if (!listRes.ok) return;
+
+  type VercelEnvVar = { id: string; key: string };
+  const { envs } = (await listRes.json()) as { envs: VercelEnvVar[] };
+  const existing = envs.find((e) => e.key === "UPSTOX_ACCESS_TOKEN");
+
+  if (existing) {
+    await fetch(`${baseUrl}/${existing.id}${params}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${vercelToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ value: accessToken }),
+    });
+  } else {
+    await fetch(`${baseUrl}${params}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${vercelToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: "UPSTOX_ACCESS_TOKEN",
+        value: accessToken,
+        type: "encrypted",
+        target: ["production"],
+      }),
+    });
+  }
 }
 
 async function saveLocalAccessToken(accessToken: string) {

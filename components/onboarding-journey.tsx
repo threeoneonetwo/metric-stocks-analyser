@@ -1,43 +1,35 @@
 "use client";
 
-import { BarChart3, Check, ChevronRight, Search, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { BarChart3, Check, Search, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "metric:onboarding:v1";
 const COOKIE_KEY = "metric_onboarding";
 
 const steps = [
   {
-    eyebrow: "Mission 01",
-    title: "Search like a person",
-    body: "Type a ticker or company name. Metric resolves the closest NSE/BSE stock and shows matches before you run it.",
-    reward: "Search scout",
     icon: Search,
-    xp: 25,
+    label: "01",
+    title: "Search any stock",
+    body: "Type a ticker or company name. Metric resolves the closest NSE or BSE stock and shows matches as you type.",
   },
   {
-    eyebrow: "Mission 02",
-    title: "Read the live signal",
-    body: "The brief turns price action, volume, risk, peers, and news into plain-English context for the stock.",
-    reward: "Signal reader",
     icon: BarChart3,
-    xp: 50,
+    label: "02",
+    title: "Read the live signal",
+    body: "The brief turns price action, volume, peers, and news into plain English context you can actually use.",
   },
   {
-    eyebrow: "Mission 03",
-    title: "Compare before acting",
-    body: "Use movers, peer comparison, and news sentiment to understand whether the move has depth or is just noise.",
-    reward: "Peer checker",
     icon: Sparkles,
-    xp: 75,
+    label: "03",
+    title: "Compare before acting",
+    body: "Use movers, peer comparison, and news sentiment to understand whether a move has depth or is just noise.",
   },
   {
-    eyebrow: "Ready",
-    title: "Run your first analysis",
-    body: "Pick a stock, scan the brief, and refresh when you want the latest available snapshot.",
-    reward: "Brief unlocked",
     icon: Check,
-    xp: 100,
+    label: "04",
+    title: "Run your first analysis",
+    body: "Pick any stock, scan the brief, and refresh when you want the latest available snapshot.",
   },
 ];
 
@@ -54,184 +46,133 @@ export function OnboardingJourney() {
 
   useEffect(() => {
     const shouldPreviewOnboarding = new URLSearchParams(window.location.search).has("onboarding");
-
     if (shouldPreviewOnboarding) {
       window.localStorage.removeItem(STORAGE_KEY);
       document.cookie = `${COOKIE_KEY}=; path=/; max-age=0; SameSite=Lax`;
     }
-
     setIsMounted(true);
-    setIsOpen(window.localStorage.getItem(STORAGE_KEY) !== "complete");
+    if (window.localStorage.getItem(STORAGE_KEY) === "complete") return;
+
+    const onFirstScroll = () => {
+      setIsOpen(true);
+      window.removeEventListener("scroll", onFirstScroll);
+    };
+    window.addEventListener("scroll", onFirstScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onFirstScroll);
   }, []);
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
+    if (!isOpen) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
+    return () => { document.body.style.overflow = originalOverflow; };
   }, [isOpen]);
 
-  const progress = useMemo(() => ((activeStep + 1) / steps.length) * 100, [activeStep]);
+  const isFinalStep = activeStep === steps.length - 1;
   const step = steps[activeStep];
   const StepIcon = step.icon;
-  const isFinalStep = activeStep === steps.length - 1;
-  const completedSteps = steps.slice(0, activeStep);
 
   function continueJourney() {
     if (isFinalStep) {
       completeOnboarding();
       window.setTimeout(() => {
         const nextPath = new URLSearchParams(window.location.search).get("next");
-        if (nextPath?.startsWith("/")) {
-          window.location.assign(nextPath);
-          return;
-        }
-
+        if (nextPath?.startsWith("/")) { window.location.assign(nextPath); return; }
         document.getElementById("ticker-search")?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 80);
       return;
     }
-
-    setActiveStep((current) => current + 1);
+    setActiveStep((c) => c + 1);
   }
 
-  if (!isMounted || !isOpen) {
-    return null;
-  }
+  if (!isMounted || !isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 py-6"
+      className="fixed inset-0 flex items-center justify-center px-5"
+      style={{ zIndex: 10000, background: "rgba(7,12,26,0.85)", backdropFilter: "blur(8px)" }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="metric-onboarding-title"
     >
-      <div className="onboarding-card w-full max-w-[390px] border-4 border-black bg-metric-finance-bg neo-shadow">
-        <div className="flex items-center justify-between gap-3 border-b-4 border-black bg-metric-cream px-4 py-3">
-          <div>
-            <p className="font-mono text-[10px] font-black uppercase tracking-[0.12em] text-metric-blue">
-              Required first run
-            </p>
-            <p className="text-[24px] font-black leading-none tracking-[-0.04em] text-black">
-              metric
-            </p>
-          </div>
-          <span className="border-2 border-black bg-black px-2 py-1 font-mono text-[9px] font-black uppercase tracking-[0.08em] text-white">
-            Search locked
+      <div
+        className="w-full max-w-[340px] rounded-2xl flex flex-col overflow-hidden"
+        style={{ background: "#080f20", border: "1px solid rgba(255,255,255,0.1)", fontFamily: "Arial, sans-serif" }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-3"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <span className="text-white font-bold text-lg tracking-tight">Metric</span>
+          <span
+            className="text-[10px] font-medium uppercase tracking-widest px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(184,196,255,0.1)", color: "#b8c4ff" }}
+          >
+            Quick start
           </span>
         </div>
 
-        <div className="relative overflow-hidden p-4">
-          <div className="onboarding-scan mb-3 border-2 border-dashed border-black bg-metric-finance-accent-soft p-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-[10px] font-black uppercase tracking-[0.12em] text-metric-muted">
-                Level {activeStep + 1} / {steps.length}
-              </span>
-              <span className="border-2 border-black bg-black px-2 py-1 font-mono text-[10px] font-black uppercase tracking-[0.1em] text-white">
-                {step.xp} XP
-              </span>
+        {/* Body */}
+        <div className="px-5 py-5 flex flex-col gap-4">
+          {/* Step icon + text */}
+          <div className="flex items-start gap-3">
+            <div
+              className="shrink-0 flex items-center justify-center rounded-xl"
+              style={{ width: 40, height: 40, background: "rgba(184,196,255,0.1)", border: "1px solid rgba(184,196,255,0.2)" }}
+            >
+              <StepIcon size={18} strokeWidth={2} color="#b8c4ff" />
             </div>
-            <div className="mt-3 h-3 border-2 border-black bg-white">
-              <div className="h-full bg-metric-finance-accent transition-[width] duration-300 ease-out" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          <div className="mb-4 grid grid-cols-4 gap-2">
-            {steps.map((item, index) => {
-              const Icon = item.icon;
-              const isUnlocked = index <= activeStep;
-              return (
-                <div
-                  key={item.reward}
-                  className={`onboarding-badge border-2 border-black px-1 py-2 text-center ${
-                    isUnlocked ? "bg-white" : "bg-metric-surface-variant opacity-60"
-                  }`}
-                >
-                  <Icon className="mx-auto mb-1" size={14} strokeWidth={2.6} />
-                  <span className="block font-mono text-[7px] font-black uppercase leading-3 tracking-[0.05em] text-black">
-                    {isUnlocked ? "Unlocked" : "Locked"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="surface bg-white p-4">
-            <div className="mb-4 flex items-start gap-3">
-              <div className="onboarding-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-metric-finance-accent-soft">
-                <StepIcon size={24} strokeWidth={2.6} />
-              </div>
-              <div className="min-w-0">
-                <p className="font-mono text-[10px] font-black uppercase tracking-[0.12em] text-metric-blue">
-                  {step.eyebrow}
-                </p>
-                <h2 id="metric-onboarding-title" className="text-[27px] italic leading-[0.96] text-black" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 700 }}>
-                  {step.title}
-                </h2>
-              </div>
-            </div>
-
-            <p className="text-[16px] font-medium leading-6 text-black">
-              {step.body}
-            </p>
-
-            <div className="mt-4 flex items-center justify-between gap-3 border-2 border-black bg-metric-finance-accent-soft px-3 py-2">
-              <span className="font-mono text-[9px] font-black uppercase tracking-[0.08em] text-metric-muted">
-                Reward
-              </span>
-              <span className="font-mono text-[10px] font-black uppercase tracking-[0.08em] text-black">
-                {step.reward}
-              </span>
-            </div>
-
-            <div className="mt-5 grid grid-cols-4 gap-2">
-              {steps.map((item, index) => (
-                <div
-                  key={item.title}
-                  className={`h-3 border-2 border-black transition-colors ${
-                    index <= activeStep ? "bg-metric-finance-accent" : "bg-white"
-                  }`}
-                />
-              ))}
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-widest mb-0.5" style={{ color: "#b8c4ff" }}>
+                Step {step.label}
+              </p>
+              <h2 id="metric-onboarding-title" className="text-white font-bold text-base leading-tight">
+                {step.title}
+              </h2>
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
+          <p className="text-sm leading-relaxed" style={{ color: "#8e909f" }}>
+            {step.body}
+          </p>
+
+          {/* Progress dots */}
+          <div className="flex items-center gap-1.5">
+            {steps.map((_, i) => (
+              <div
+                key={i}
+                className="rounded-full transition-all duration-200"
+                style={{
+                  height: 4,
+                  width: i === activeStep ? 20 : 6,
+                  background: i <= activeStep ? "#b8c4ff" : "rgba(255,255,255,0.12)",
+                }}
+              />
+            ))}
+          </div>
+
+          {/* CTA */}
+          <button
+            type="button"
+            onClick={continueJourney}
+            className="w-full rounded-xl py-2.5 font-bold text-sm text-[#0b1326] active:scale-95 transition-all"
+            style={{ background: "#b8c4ff" }}
+          >
+            {isFinalStep ? "Get started" : "Next"}
+          </button>
+
+          {/* Skip */}
+          {!isFinalStep && (
             <button
               type="button"
-              className="neo-press border-4 border-black bg-black px-4 py-3 font-mono text-sm font-black uppercase tracking-[0.06em] text-white hover:bg-metric-finance-accent"
-              onClick={continueJourney}
+              onClick={completeOnboarding}
+              className="text-center text-xs transition-colors"
+              style={{ color: "#8e909f" }}
             >
-              {isFinalStep ? "Unlock analysis" : `Claim ${step.xp} XP`}
+              Skip intro
             </button>
-            <button
-              type="button"
-              className="neo-press flex h-full items-center justify-center border-4 border-black bg-white px-3 text-black hover:bg-metric-finance-accent-soft"
-              onClick={continueJourney}
-              aria-label={isFinalStep ? "Open search" : "Next onboarding step"}
-            >
-              <ChevronRight size={22} strokeWidth={3} />
-            </button>
-          </div>
-
-          {completedSteps.length > 0 ? (
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {completedSteps.map((item) => (
-                <span
-                  key={item.reward}
-                  className="onboarding-earned border-2 border-black bg-white px-2 py-1 font-mono text-[8px] font-black uppercase tracking-[0.08em] text-black"
-                >
-                  + {item.reward}
-                </span>
-              ))}
-            </div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>

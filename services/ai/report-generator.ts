@@ -1,12 +1,11 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { getMockReport } from "@/domain/mock-report";
 import type { MarketSnapshot } from "@/services/marketData/types";
 
-export const REPORT_PROMPT_VERSION = 7;
+export const REPORT_PROMPT_VERSION = 8;
 
 const generatedMetricSchema = z.object({
   label: z.string().min(1),
@@ -36,7 +35,7 @@ export type GeneratedReportResult = {
 };
 
 export function canGenerateAiReport() {
-  return Boolean(process.env.ANTHROPIC_API_KEY) || Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
 export async function generateReportPayload(
@@ -130,7 +129,7 @@ async function generateWithModelFallback(prompt: string) {
           system: SYSTEM_PROMPT,
           prompt,
         }),
-        12000,
+        30000,
       );
       if (!result) {
         throw new Error("Timed out");
@@ -141,32 +140,7 @@ async function generateWithModelFallback(prompt: string) {
     }
   }
 
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    const geminiModelIds = getGeminiModelIds();
-    for (const modelId of geminiModelIds) {
-      try {
-        const result = await withTimeout(
-          generateObject({
-            model: google(modelId),
-            schema: reportPayloadSchema,
-            schemaName: "MetricFinanceEquityReport",
-            temperature: 0.45,
-            system: SYSTEM_PROMPT,
-            prompt,
-          }),
-          12000,
-        );
-        if (!result) {
-          throw new Error("Timed out");
-        }
-        return { object: result.object, modelId, provider: "gemini" as const };
-      } catch (error) {
-        errors.push(`${modelId}: ${error instanceof Error ? error.message : "Unknown Gemini error"}`);
-      }
-    }
-  }
-
-  throw new Error(`Report generation failed for all configured models. ${errors.join(" | ")}`);
+  throw new Error(`Claude report generation failed. ${errors.join(" | ")}`);
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -174,19 +148,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
     promise,
     new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
   ]);
-}
-
-function getGeminiModelIds() {
-  const configuredModels = [
-    process.env.GEMINI_MODEL,
-    ...(process.env.GEMINI_FALLBACK_MODELS?.split(",") ?? []),
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
-  ]
-    .map((model) => model?.trim())
-    .filter((model): model is string => Boolean(model));
-
-  return [...new Set(configuredModels)];
 }
 
 function applyMarketData(report: ReportPayload, marketData: MarketSnapshot | undefined): ReportPayload {

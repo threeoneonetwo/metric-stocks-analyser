@@ -2,13 +2,13 @@
 
 Metric Finance generates AI-powered equity research reports for NSE and BSE listed stocks. Enter any ticker and get a shareable analysis covering executive summary, contrarian signal, financials, peer comparison, sentiment, and risks.
 
-Built on Next.js 15, Gemini 2.5, and Postgres, with streaming generation and sub-second cached reads.
+Built on Next.js 15, Claude, and Postgres, with streaming generation and sub-second cached reads.
 
 ## Tech Stack
 
 - Next.js 15
 - React 19
-- Gemini 2.5 via AI SDK
+- Claude via AI SDK
 - Postgres with Drizzle ORM
 - Tailwind CSS 4
 
@@ -54,11 +54,8 @@ The first database-backed flow is report caching:
 
 ## AI Reports
 
-Set `GOOGLE_GENERATIVE_AI_API_KEY` to enable Gemini-backed report generation.
-The default model is `gemini-2.5-flash`, configurable with `GEMINI_MODEL`.
-Set `GEMINI_FALLBACK_MODELS` to a comma-separated list, such as
-`gemini-2.5-flash-lite,gemini-2.0-flash`, so the app can retry another model
-when the primary model is quota-limited or temporarily overloaded.
+Set `ANTHROPIC_API_KEY` to enable Claude-backed report generation.
+The default model is `claude-sonnet-4-6`, configurable with `CLAUDE_MODEL`.
 
 When the key is unavailable, the app safely falls back to the mock report
 payload. Saved reports are reused for 24 hours unless a request includes
