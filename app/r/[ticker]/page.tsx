@@ -111,6 +111,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
     : newsCounts.negative > newsCounts.positive && newsCounts.negative >= newsCounts.neutral
       ? "Negative"
       : (signals?.news ?? []).length ? "Neutral" : "No News";
+  const hasTechnicalSignals = (signals?.technicals?.length ?? 0) > 0;
   const templateRiskCards = buildRiskCards({ marketData, marketRead, rangeRead, volumeRead, metrics: displayMetrics, signals });
   const riskCards = templateRiskCards.map((card, i) => {
     const aiCopy = i === 0 ? aiInsights?.valuationRisk : i === 1 ? aiInsights?.earningsRisk : aiInsights?.marketTiming;
@@ -142,7 +143,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
       {/* Top nav */}
       <header
-        className="w-full h-16 sticky top-0 z-50 flex items-center justify-between"
+        className="w-full h-16 flex items-center justify-between"
         style={{ background: "rgba(11,19,38,0.85)", backdropFilter: "blur(16px)", borderBottom: `1px solid ${G}`, paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
       >
         <Link href="/" className="text-white font-bold text-2xl tracking-tight">
@@ -204,12 +205,12 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </div>
         </div>
 
-        {/* ── Dashboard grid: main analysis + sidebar on desktop ── */}
-        <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
-        <div className="contents lg:flex lg:flex-col lg:gap-6 lg:col-span-2 lg:min-w-0">
+        {/* ── Desktop bento grid; mobile remains a single-column reading flow ── */}
+        <div className="flex flex-col gap-5 lg:grid lg:grid-cols-12 lg:items-start lg:gap-5 xl:gap-6">
+        <div className="contents">
 
         {/* ── Before You Buy ── */}
-        <section className="glass-panel p-5 lg:p-6">
+        <section className="glass-panel p-5 lg:col-span-12 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[#b8c4ff]">
               Before You Buy
@@ -229,7 +230,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         {/* ── Range Position ── */}
-        <section className="glass-panel p-5 lg:p-6">
+        <section className="glass-panel p-5 lg:col-span-12 lg:p-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold text-[#dae2fd]">Range Position</h2>
             <span
@@ -243,19 +244,23 @@ export default async function ReportPage({ params }: ReportPageProps) {
               {rangeRead.label.replace("Range Context: ", "")}
             </span>
           </div>
-          <div className="flex justify-between mt-3 text-[10px] text-[#8e909f]">
-            <span>{formatPrice(marketData?.fiftyTwoWeekLow ?? null)}</span>
-            <span className="text-[#b8c4ff]">{rangePos}% of range</span>
-            <span>{formatPrice(marketData?.fiftyTwoWeekHigh ?? null)}</span>
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-center lg:gap-8">
+            <div>
+              <div className="flex justify-between mt-3 text-[10px] text-[#8e909f]">
+                <span>{formatPrice(marketData?.fiftyTwoWeekLow ?? null)}</span>
+                <span className="text-[#b8c4ff]">{rangePos}% of range</span>
+                <span>{formatPrice(marketData?.fiftyTwoWeekHigh ?? null)}</span>
+              </div>
+              <div className="h-2 rounded-full mt-2 overflow-hidden" style={{ background: "rgba(45,52,73,1)" }}>
+                <div className="h-full rounded-full bg-[#b8c4ff] transition-all" style={{ width: `${rangePos}%` }} />
+              </div>
+            </div>
+            <p className="text-xs text-[#8e909f] mt-3 leading-relaxed lg:mt-0">{rangePositionText}</p>
           </div>
-          <div className="h-2 rounded-full mt-2 overflow-hidden" style={{ background: "rgba(45,52,73,1)" }}>
-            <div className="h-full rounded-full bg-[#b8c4ff] transition-all" style={{ width: `${rangePos}%` }} />
-          </div>
-          <p className="text-xs text-[#8e909f] mt-3 leading-relaxed">{rangePositionText}</p>
         </section>
 
         {/* ── Metric Brief ── */}
-        <section className="glass-panel p-5 lg:p-6">
+        <section className="glass-panel p-5 lg:col-span-12 lg:p-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold text-[#dae2fd]">Metric Brief</h2>
             <Link href={`/analyze/${report.ticker}?refresh=1`} className="p-1.5 text-[#8e909f] rounded-full hover:bg-white/5" aria-label="Refresh">
@@ -266,7 +271,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         {/* ── News Sentiment ── */}
-        <section className="glass-panel p-5 lg:p-6">
+        <section className="glass-panel p-5 lg:col-span-12 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-[#dae2fd]">News Sentiment</h2>
             <span
@@ -292,10 +297,10 @@ export default async function ReportPage({ params }: ReportPageProps) {
           {newsContextText && (
             <p className="text-xs text-[#8e909f] leading-relaxed mb-4">{newsContextText}</p>
           )}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:auto-rows-fr lg:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]">
             {(signals?.news ?? []).length > 0 ? (
               signals!.news.map((item) => (
-                <div key={`${item.title}-${item.publishedAt}`} className="rounded-lg p-3" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
+                <div key={`${item.title}-${item.publishedAt}`} className="rounded-lg p-3 lg:h-full" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[8px] font-bold text-[#b8c4ff] uppercase tracking-wider">{item.source}</span>
                     <span className="text-[8px] text-[#8e909f] uppercase">{item.sentiment}</span>
@@ -307,7 +312,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
                   ) : (
                     <p className="text-sm font-semibold text-[#dae2fd] leading-snug line-clamp-2">{item.title}</p>
                   )}
-                  {item.summary && <p className="mt-1.5 text-xs text-[#8e909f] leading-relaxed">{item.summary}</p>}
+                  {item.summary && <p className="mt-1.5 text-xs text-[#8e909f] leading-relaxed lg:line-clamp-2">{item.summary}</p>}
                 </div>
               ))
             ) : (
@@ -318,22 +323,26 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </div>
 
         {/* ── Sidebar column on desktop ── */}
-        <div className="contents lg:flex lg:flex-col lg:gap-6 lg:min-w-0">
+        <div className="contents">
 
         {/* ── Business Quality ── */}
-        <section className="glass-panel p-5">
+        <section className="glass-panel p-5 lg:col-span-12 lg:p-6">
           <h2 className="text-base font-semibold text-[#dae2fd] mb-4">{hasFundamentalData ? "Business Quality" : "Market Feed"}</h2>
-          <div className="space-y-4">
+          <div className="space-y-4 lg:grid lg:grid-cols-6 lg:gap-3 lg:space-y-0">
             {displayMetrics.slice(0, 6).map(([label, value, yoy, median]) => {
               const hasYoY = isMeaningfulMetricMovement(yoy);
               const hasMedian = Boolean(median && median !== "N/A");
               return (
-                <div key={label} className="flex items-center justify-between">
+                <div
+                  key={label}
+                  className="flex items-center justify-between lg:min-h-[8.75rem] lg:flex-col lg:items-start lg:justify-between lg:rounded-lg lg:p-4"
+                  style={{ background: "rgba(23,31,51,0.7)", border: `1px solid ${G}` }}
+                >
                   <div>
                     <p className="text-[9px] text-[#8e909f] uppercase tracking-wider">{label}</p>
-                    <p className="text-2xl font-bold text-[#dae2fd] mt-0.5">{value}</p>
+                    <p className="text-2xl font-bold text-[#dae2fd] mt-0.5 lg:text-3xl">{value}</p>
                   </div>
-                  <div className="text-right text-[9px]">
+                  <div className="text-right text-[9px] lg:text-left">
                     {hasYoY && <p className={yoy.startsWith("-") ? "text-[#f43f5e]" : "text-[#4ade80]"}>{yoy}</p>}
                     {hasMedian && <p className="text-[#8e909f] mt-0.5">Median {median}</p>}
                   </div>
@@ -344,13 +353,13 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         {/* ── Signal Grid (4 key tiles) ── */}
-        <section>
+        <section className={`lg:h-full ${hasTechnicalSignals ? "lg:col-span-4" : "lg:col-span-6"}`}>
           <p className="text-[9px] text-[#8e909f] font-mono uppercase tracking-widest mb-3">Live Signals</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:h-[calc(100%-1.5rem)] lg:grid-rows-2">
             {[signalTiles[0], signalTiles[3], signalTiles[6], signalTiles[7]].map((tile) => (
               <div
                 key={tile.label}
-                className="glass-panel p-4"
+                className="glass-panel p-4 lg:h-full"
                 style={
                   tile.tone === "accent" ? { background: "rgba(55,85,195,0.18)", borderColor: "rgba(184,196,255,0.2)" }
                     : tile.tone === "dark" ? { background: "rgba(6,14,32,0.8)" }
@@ -366,7 +375,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </section>
 
         {/* ── Peer Lens ── */}
-        <section className="glass-panel p-5">
+        <section className={`glass-panel p-5 lg:h-full ${hasTechnicalSignals ? "lg:col-span-4" : "lg:col-span-6"}`}>
           <h2 className="text-base font-semibold text-[#dae2fd] mb-4">Peer Lens</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -406,7 +415,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
         {/* ── Technical Signals ── */}
         {(signals?.technicals?.length ?? 0) > 0 && (
-          <section className="glass-panel p-5">
+          <section className="glass-panel p-5 lg:col-span-4 lg:h-full">
             <h2 className="text-base font-semibold text-[#dae2fd] mb-4">Technical Signals</h2>
             <div className="space-y-4">
               {signals!.technicals.map((item) => (
