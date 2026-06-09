@@ -432,13 +432,13 @@ export default async function ReportPage({ params }: ReportPageProps) {
             {riskCards.map(({ Icon, title, copy, stripe }) => {
               const stripeColor = stripe === "bg-metric-red" ? "#f43f5e" : stripe === "bg-metric-pink" ? "#ffb4ab" : "#4ade80";
               return (
-                <div key={title} className="relative overflow-hidden rounded-lg p-3 pl-4 lg:p-4 lg:pl-5" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
+                <div key={title} className="relative min-h-full overflow-hidden rounded-lg p-3 pl-4 lg:p-4 lg:pl-5" style={{ background: "rgba(23,31,51,0.8)", border: `1px solid ${G}` }}>
                   <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg" style={{ background: stripeColor }} />
                   <div className="flex items-center gap-2 mb-1.5">
                     <Icon size={14} strokeWidth={2} style={{ color: stripeColor }} />
                     <p className="text-[10px] font-bold text-[#dae2fd] uppercase tracking-wider">{title}</p>
                   </div>
-                  <p className="text-xs text-[#8e909f] leading-relaxed">{copy}</p>
+                  <p className="text-xs text-[#8e909f] leading-relaxed lg:text-sm">{copy}</p>
                 </div>
               );
             })}
@@ -447,22 +447,26 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
         {/* ── Verdict ── */}
         <section className="rounded-xl p-6 lg:p-8 mb-2" style={{ background: "linear-gradient(135deg, rgba(30,64,175,0.2) 0%, rgba(11,19,38,0.4) 100%)", border: "1px solid rgba(184,196,255,0.25)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1.5 h-5 rounded-full bg-[#b8c4ff]" />
-            <h2 className="text-lg font-bold text-[#b8c4ff] tracking-tight">Analyst Verdict</h2>
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end lg:gap-5">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1.5 h-5 rounded-full bg-[#b8c4ff]" />
+                <h2 className="text-lg font-bold text-[#b8c4ff] tracking-tight">Analyst Verdict</h2>
+              </div>
+              {verdict ? (
+                <p className="mb-6 max-w-5xl text-sm text-[#c4c5d5] leading-[1.8] lg:mb-0 lg:text-base lg:leading-[1.75]">{verdict}</p>
+              ) : (
+                <p className="mb-6 max-w-5xl text-sm text-[#c4c5d5] leading-[1.8] lg:mb-0 lg:text-base lg:leading-[1.75]">
+                  Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data.
+                </p>
+              )}
+            </div>
+            <ShareReportButton
+              ticker={report.ticker}
+              companyName={report.companyName}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#b8c4ff] py-3 text-sm font-bold text-[#0b1326] transition-colors hover:bg-[#dde1ff] lg:mb-1"
+            />
           </div>
-          {verdict ? (
-            <p className="text-sm lg:text-[15px] text-[#c4c5d5] leading-[1.8] mb-6 lg:max-w-4xl">{verdict}</p>
-          ) : (
-            <p className="text-sm lg:text-[15px] text-[#c4c5d5] leading-[1.8] mb-6 lg:max-w-4xl">
-              Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data.
-            </p>
-          )}
-          <ShareReportButton
-            ticker={report.ticker}
-            companyName={report.companyName}
-            className="w-full lg:w-auto lg:px-10 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm text-[#0b1326] bg-[#b8c4ff] hover:bg-[#dde1ff] transition-colors"
-          />
         </section>
       </div>
 
