@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LandingViewEvent } from "@/components/analytics-events";
 import { DarkHomeFaq } from "@/components/home-faq";
 import { HeroHeadline } from "@/components/hero-headline";
 import { OnboardingJourney } from "@/components/onboarding-journey";
@@ -8,6 +9,7 @@ import { TestimonialsCarousel } from "@/components/testimonials-carousel";
 export default function Home() {
   return (
     <main className="homepage relative min-h-screen flex flex-col">
+      <LandingViewEvent />
       <OnboardingJourney />
 
       {/* Background */}

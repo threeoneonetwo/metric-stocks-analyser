@@ -1,7 +1,5 @@
 import { neon } from "@neondatabase/serverless";
 
-const VISITOR_ESTIMATE_CONVERSION_RATE = 0.75;
-
 export type DashboardKpi = {
   label: string;
   value: string;
@@ -25,8 +23,14 @@ type SummaryRow = {
   completed_analyses: string | number | null;
   errors: string | number | null;
   people_analysed: string | number | null;
+  product_visitors: string | number | null;
+  landing_visitors: string | number | null;
+  search_users: string | number | null;
+  report_viewers: string | number | null;
+  share_users: string | number | null;
   month_total_analyses: string | number | null;
   month_people_analysed: string | number | null;
+  month_product_visitors: string | number | null;
 };
 
 type TopTickerRow = {
@@ -51,8 +55,14 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
       completedAnalyses: 0,
       errors: 0,
       peopleAnalysed: 0,
+      productVisitors: 0,
+      landingVisitors: 0,
+      searchUsers: 0,
+      reportViewers: 0,
+      shareUsers: 0,
       monthTotalAnalyses: 0,
       monthPeopleAnalysed: 0,
+      monthProductVisitors: 0,
       topTickers: [],
     });
   }
@@ -70,6 +80,40 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
         count(*) filter (where outcome = 'error') as errors,
         count(distinct ip_hash) filter (where ip_hash is not null) as people_analysed,
         (
+          select count(distinct coalesce(product_events.ip_hash, product_events.id::text))
+          from product_events
+          where product_events.occurred_at >= ${dayStart}
+            and product_events.occurred_at < ${dayEnd}
+        ) as product_visitors,
+        (
+          select count(distinct coalesce(product_events.ip_hash, product_events.id::text))
+          from product_events
+          where product_events.occurred_at >= ${dayStart}
+            and product_events.occurred_at < ${dayEnd}
+            and product_events.event_name = 'landing_view'
+        ) as landing_visitors,
+        (
+          select count(distinct coalesce(product_events.ip_hash, product_events.id::text))
+          from product_events
+          where product_events.occurred_at >= ${dayStart}
+            and product_events.occurred_at < ${dayEnd}
+            and product_events.event_name in ('search_open', 'search_submit')
+        ) as search_users,
+        (
+          select count(distinct coalesce(product_events.ip_hash, product_events.id::text))
+          from product_events
+          where product_events.occurred_at >= ${dayStart}
+            and product_events.occurred_at < ${dayEnd}
+            and product_events.event_name = 'report_view'
+        ) as report_viewers,
+        (
+          select count(distinct coalesce(product_events.ip_hash, product_events.id::text))
+          from product_events
+          where product_events.occurred_at >= ${dayStart}
+            and product_events.occurred_at < ${dayEnd}
+            and product_events.event_name = 'share_report'
+        ) as share_users,
+        (
           select count(*)
           from generation_jobs as month_jobs
           where month_jobs.started_at >= ${monthStart}
@@ -81,7 +125,13 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
           where month_jobs.started_at >= ${monthStart}
             and month_jobs.started_at < ${monthEnd}
             and month_jobs.ip_hash is not null
-        ) as month_people_analysed
+        ) as month_people_analysed,
+        (
+          select count(distinct coalesce(month_events.ip_hash, month_events.id::text))
+          from product_events as month_events
+          where month_events.occurred_at >= ${monthStart}
+            and month_events.occurred_at < ${monthEnd}
+        ) as month_product_visitors
       from generation_jobs
       where started_at >= ${dayStart} and started_at < ${dayEnd}` as unknown as Promise<SummaryRow[]>,
     sql`select ticker, count(*) as analyses
@@ -102,8 +152,14 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
     completedAnalyses: toNumber(summary.completed_analyses),
     errors: toNumber(summary.errors),
     peopleAnalysed: toNumber(summary.people_analysed),
+    productVisitors: toNumber(summary.product_visitors),
+    landingVisitors: toNumber(summary.landing_visitors),
+    searchUsers: toNumber(summary.search_users),
+    reportViewers: toNumber(summary.report_viewers),
+    shareUsers: toNumber(summary.share_users),
     monthTotalAnalyses: toNumber(summary.month_total_analyses),
     monthPeopleAnalysed: toNumber(summary.month_people_analysed),
+    monthProductVisitors: toNumber(summary.month_product_visitors),
     topTickers: topTickerRows.map((row) => ({
       ticker: row.ticker,
       analyses: toNumber(row.analyses),
@@ -119,32 +175,31 @@ function buildDashboardData(input: {
   completedAnalyses: number;
   errors: number;
   peopleAnalysed: number;
+  productVisitors: number;
+  landingVisitors: number;
+  searchUsers: number;
+  reportViewers: number;
+  shareUsers: number;
   monthTotalAnalyses: number;
   monthPeopleAnalysed: number;
+  monthProductVisitors: number;
   topTickers: DashboardData["topTickers"];
 }): DashboardData {
-  const estimatedVisitors = input.peopleAnalysed
-    ? Math.round(input.peopleAnalysed / VISITOR_ESTIMATE_CONVERSION_RATE)
-    : 0;
-  const monthEstimatedVisitors = input.monthPeopleAnalysed
-    ? Math.round(input.monthPeopleAnalysed / VISITOR_ESTIMATE_CONVERSION_RATE)
-    : 0;
-
   return {
     generatedAt: input.generatedAt.toISOString(),
     selectedDate: input.selectedDate,
     dateLabel: input.dateLabel,
     kpis: [
       {
-        label: "Estimated visitors",
-        value: formatInteger(estimatedVisitors),
-        detail: "Best first-party estimate",
-        tone: estimatedVisitors > 0 ? "good" : "neutral",
+        label: "Product visitors",
+        value: formatInteger(input.productVisitors),
+        detail: "Unique visitors with a tracked product event",
+        tone: input.productVisitors > 0 ? "good" : "neutral",
       },
       {
         label: "People who analysed",
         value: formatInteger(input.peopleAnalysed),
-        detail: "Unique IP hash count",
+        detail: "Unique visitors who triggered analysis",
         tone: input.peopleAnalysed > 0 ? "good" : "neutral",
       },
       {
@@ -154,22 +209,22 @@ function buildDashboardData(input: {
         tone: input.totalAnalyses > 0 ? "good" : "neutral",
       },
       {
-        label: "Completed analyses",
-        value: formatInteger(input.completedAnalyses),
-        detail: "Ready or cached reports",
-        tone: input.completedAnalyses > 0 ? "good" : "neutral",
+        label: "Report viewers",
+        value: formatInteger(input.reportViewers),
+        detail: "Unique visitors who viewed a report",
+        tone: input.reportViewers > 0 ? "good" : "neutral",
       },
       {
-        label: "Errors",
-        value: formatInteger(input.errors),
-        detail: "Failed analysis requests",
-        tone: input.errors > 0 ? "bad" : "good",
+        label: "Search users",
+        value: formatInteger(input.searchUsers),
+        detail: "Unique visitors who opened or used search",
+        tone: input.searchUsers > 0 ? "good" : "neutral",
       },
       {
         label: "Month visitors",
-        value: formatInteger(monthEstimatedVisitors),
-        detail: "Current calendar month estimate",
-        tone: monthEstimatedVisitors > 0 ? "good" : "neutral",
+        value: formatInteger(input.monthProductVisitors),
+        detail: "Current calendar month product visitors",
+        tone: input.monthProductVisitors > 0 ? "good" : "neutral",
       },
       {
         label: "Month analyses",
@@ -182,6 +237,18 @@ function buildDashboardData(input: {
         value: formatInteger(input.monthPeopleAnalysed),
         detail: "Unique people who analysed this month",
         tone: input.monthPeopleAnalysed > 0 ? "good" : "neutral",
+      },
+      {
+        label: "Shares",
+        value: formatInteger(input.shareUsers),
+        detail: "Unique visitors who shared a report",
+        tone: input.shareUsers > 0 ? "good" : "neutral",
+      },
+      {
+        label: "Errors",
+        value: formatInteger(input.errors),
+        detail: `${formatInteger(input.completedAnalyses)} completed analysis requests`,
+        tone: input.errors > 0 ? "bad" : "good",
       },
     ],
     topTickers: input.topTickers,

@@ -3,6 +3,7 @@
 import { Check, Share2 } from "lucide-react";
 import { useState } from "react";
 import { trackEvent } from "@/lib/gtag";
+import { trackProductEvent } from "@/lib/product-events";
 
 type ShareReportButtonProps = {
   ticker: string;
@@ -38,6 +39,11 @@ export function ShareReportButton({
           ticker: normalizedTicker,
           method: "native",
         });
+        trackProductEvent({
+          eventName: "share_report",
+          ticker: normalizedTicker,
+          metadata: { method: "native", companyName },
+        });
         return;
       }
 
@@ -47,6 +53,11 @@ export function ShareReportButton({
         event_category: "engagement",
         ticker: normalizedTicker,
         method: "clipboard",
+      });
+      trackProductEvent({
+        eventName: "share_report",
+        ticker: normalizedTicker,
+        metadata: { method: "clipboard", companyName },
       });
       window.setTimeout(() => setStatus("idle"), 1800);
     } catch (error) {

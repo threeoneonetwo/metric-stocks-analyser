@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { trackProductEvent } from "@/lib/product-events";
 
 const tickerSchema = z.object({
   query: z.string().trim().min(1, "Enter a company name or ticker").max(80),
@@ -40,6 +41,7 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
   const [searchState, setSearchState] = useState<"idle" | "loading" | "ready">("idle");
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasTrackedOpenRef = useRef(false);
   const form = useForm<TickerForm>({
     resolver: zodResolver(tickerSchema),
     defaultValues: { query: "" },
@@ -117,6 +119,11 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
       const resolveRes = await fetch(`/api/resolve?query=${encodeURIComponent(ticker)}`);
       const resolveData = (await resolveRes.json()) as { result?: { ticker: string } };
       const resolved = resolveData.result?.ticker ?? ticker;
+      trackProductEvent({
+        eventName: "search_submit",
+        ticker: resolved,
+        metadata: { query: ticker, resolvedTicker: resolved },
+      });
       setProgress(85);
       stopProgress();
       window.location.assign(`/r/${encodeURIComponent(resolved)}?live=1`);
@@ -130,6 +137,14 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
     setIsDropdownOpen(false);
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
+    }
+  }
+
+  function openSuggestions() {
+    setIsDropdownOpen(true);
+    if (!hasTrackedOpenRef.current) {
+      hasTrackedOpenRef.current = true;
+      trackProductEvent({ eventName: "search_open" });
     }
   }
 
@@ -158,8 +173,8 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
               name={queryField.name}
               ref={queryField.ref}
               onBlur={queryField.onBlur}
-              onChange={(event) => { setIsDropdownOpen(true); void queryField.onChange(event); }}
-              onFocus={() => setIsDropdownOpen(true)}
+              onChange={(event) => { openSuggestions(); void queryField.onChange(event); }}
+              onFocus={openSuggestions}
               onClick={() => setIsDropdownOpen(true)}
             />
             <button
@@ -281,10 +296,10 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
           ref={queryField.ref}
           onBlur={queryField.onBlur}
           onChange={(event) => {
-            setIsDropdownOpen(true);
+            openSuggestions();
             void queryField.onChange(event);
           }}
-          onFocus={() => setIsDropdownOpen(true)}
+          onFocus={openSuggestions}
           onClick={() => setIsDropdownOpen(true)}
         />
       </label>

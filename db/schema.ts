@@ -26,6 +26,19 @@ export const generationJobs = pgTable("generation_jobs", {
   errorMessage: text("error_message"),
 });
 
+export const productEvents = pgTable("product_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventName: text("event_name").notNull(),
+  ticker: text("ticker"),
+  ipHash: text("ip_hash"),
+  visitorCountry: text("visitor_country"),
+  visitorRegion: text("visitor_region"),
+  visitorCity: text("visitor_city"),
+  visitorTimezone: text("visitor_timezone"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const config = pgTable("config", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),

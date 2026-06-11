@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { trackEvent } from "@/lib/gtag";
+import { trackProductEvent } from "@/lib/product-events";
 
 type AnalysisEventProps = {
   ticker: string;
@@ -29,7 +30,20 @@ export function ReportViewEvent({ ticker, companyName }: AnalysisEventProps) {
       ticker,
       company_name: companyName,
     });
+    trackProductEvent({
+      eventName: "report_view",
+      ticker,
+      metadata: { companyName },
+    });
   }, [companyName, ticker]);
+
+  return null;
+}
+
+export function LandingViewEvent() {
+  useEffect(() => {
+    trackProductEvent({ eventName: "landing_view" });
+  }, []);
 
   return null;
 }
