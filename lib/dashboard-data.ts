@@ -25,6 +25,7 @@ type SummaryRow = {
   completed_analyses: string | number | null;
   errors: string | number | null;
   people_analysed: string | number | null;
+  month_total_analyses: string | number | null;
   month_people_analysed: string | number | null;
 };
 
@@ -50,6 +51,7 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
       completedAnalyses: 0,
       errors: 0,
       peopleAnalysed: 0,
+      monthTotalAnalyses: 0,
       monthPeopleAnalysed: 0,
       topTickers: [],
     });
@@ -67,6 +69,12 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
         count(*) filter (where outcome in ('ready', 'cache_hit')) as completed_analyses,
         count(*) filter (where outcome = 'error') as errors,
         count(distinct ip_hash) filter (where ip_hash is not null) as people_analysed,
+        (
+          select count(*)
+          from generation_jobs as month_jobs
+          where month_jobs.started_at >= ${monthStart}
+            and month_jobs.started_at < ${monthEnd}
+        ) as month_total_analyses,
         (
           select count(distinct month_jobs.ip_hash)
           from generation_jobs as month_jobs
@@ -94,6 +102,7 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
     completedAnalyses: toNumber(summary.completed_analyses),
     errors: toNumber(summary.errors),
     peopleAnalysed: toNumber(summary.people_analysed),
+    monthTotalAnalyses: toNumber(summary.month_total_analyses),
     monthPeopleAnalysed: toNumber(summary.month_people_analysed),
     topTickers: topTickerRows.map((row) => ({
       ticker: row.ticker,
@@ -110,6 +119,7 @@ function buildDashboardData(input: {
   completedAnalyses: number;
   errors: number;
   peopleAnalysed: number;
+  monthTotalAnalyses: number;
   monthPeopleAnalysed: number;
   topTickers: DashboardData["topTickers"];
 }): DashboardData {
@@ -160,6 +170,12 @@ function buildDashboardData(input: {
         value: formatInteger(monthEstimatedVisitors),
         detail: "Current calendar month estimate",
         tone: monthEstimatedVisitors > 0 ? "good" : "neutral",
+      },
+      {
+        label: "Month analyses",
+        value: formatInteger(input.monthTotalAnalyses),
+        detail: "Total analyses this calendar month",
+        tone: input.monthTotalAnalyses > 0 ? "good" : "neutral",
       },
       {
         label: "Month users",
