@@ -117,26 +117,9 @@ export function TickerSearch({ dark = false }: { dark?: boolean }) {
       const resolveRes = await fetch(`/api/resolve?query=${encodeURIComponent(ticker)}`);
       const resolveData = (await resolveRes.json()) as { result?: { ticker: string } };
       const resolved = resolveData.result?.ticker ?? ticker;
-      setProgress(15);
-
-      // Phase 2: report generation (~10-20s) → time-based creep from 15% to 97%
-      const startTime = Date.now();
-      const estimatedMs = 16000;
-      const creep = () => {
-        const elapsed = Date.now() - startTime;
-        const ratio = Math.min(0.97, elapsed / estimatedMs);
-        // ease-out so it slows near the end
-        const eased = 1 - Math.pow(1 - ratio, 2);
-        setProgress(Math.round(15 + eased * 82));
-        if (ratio < 0.97) {
-          progressRef.current = setTimeout(creep, 250);
-        }
-      };
-      progressRef.current = setTimeout(creep, 250);
-
-      await fetch(`/api/reports/${encodeURIComponent(resolved)}`, { method: "POST" });
+      setProgress(85);
       stopProgress();
-      window.location.assign(`/r/${encodeURIComponent(resolved)}`);
+      window.location.assign(`/r/${encodeURIComponent(resolved)}?live=1`);
     } catch {
       stopProgress();
       window.location.assign(`/analyze/${encodeURIComponent(ticker)}`);

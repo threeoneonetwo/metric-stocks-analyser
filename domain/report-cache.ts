@@ -15,6 +15,44 @@ export async function getReportForTicker(ticker: string): Promise<ReportPayload>
   return (await getReportViewForTicker(ticker)).payload;
 }
 
+export async function getInstantReportViewForTicker(
+  ticker: string,
+): Promise<{ payload: ReportPayload; sourceData?: ReportSourceData; generatedAt?: Date; needsAiGeneration: boolean }> {
+  const marketData = await getMarketDataService().getSnapshot(ticker);
+
+  if (marketData.ok && marketData.data.source !== "mock") {
+    const payload = buildMarketDataReport(ticker, marketData.data);
+
+    return {
+      payload,
+      sourceData: {
+        provider: "market-data",
+        generatedReason: "cache-miss",
+        ticker,
+        marketData: marketData.data,
+      },
+      generatedAt: new Date(),
+      needsAiGeneration: true,
+    };
+  }
+
+  const storedReport = await getStoredReport(ticker);
+  if (storedReport && isUsableStoredReport(storedReport)) {
+    return {
+      payload: storedReport.payload,
+      sourceData: storedReport.sourceData,
+      generatedAt: storedReport.generatedAt,
+      needsAiGeneration: true,
+    };
+  }
+
+  return {
+    payload: getMockReport(ticker),
+    generatedAt: new Date(),
+    needsAiGeneration: true,
+  };
+}
+
 export async function getReportViewForTicker(
   ticker: string,
   options: { visitor?: VisitorMetadata } = {},
@@ -239,7 +277,7 @@ function hasTemplateInsight(payload: ReportPayload) {
   return templatedPhrases.some((phrase) => text.includes(phrase));
 }
 
-function buildMarketDataReport(ticker: string, marketData: MarketSnapshot): ReportPayload {
+export function buildMarketDataReport(ticker: string, marketData: MarketSnapshot): ReportPayload {
   const metricRows = marketData.metrics.map<ReportPayload["metrics"][number]>((metric) => [
     metric.label,
     metric.value,

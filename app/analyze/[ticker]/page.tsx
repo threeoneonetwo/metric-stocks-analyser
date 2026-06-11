@@ -1,9 +1,6 @@
-import { ensureReportForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { cookies } from "next/headers";
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { getVisitorMetadata } from "@/lib/request-metadata";
 
 type AnalyzePageProps = {
   params: Promise<{ ticker: string }>;
@@ -27,10 +24,6 @@ export default async function AnalyzePage({ params, searchParams }: AnalyzePageP
   }
 
   const normalizedTicker = resolved.data.ticker;
-  const headerStore = await headers();
-  await ensureReportForTicker(normalizedTicker, {
-    refresh: refresh === "1",
-    visitor: getVisitorMetadata(headerStore),
-  });
-  redirect(`/r/${encodeURIComponent(normalizedTicker)}`);
+  const liveParam = refresh === "1" ? "?live=1&refresh=1" : "?live=1";
+  redirect(`/r/${encodeURIComponent(normalizedTicker)}${liveParam}`);
 }

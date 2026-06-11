@@ -4,9 +4,10 @@ import { headers } from "next/headers";
 import { AlertTriangle, Bolt, RefreshCw, TrendingDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReportViewEvent } from "@/components/analytics-events";
+import { LiveAnalysisRefresh } from "@/components/live-analysis-refresh";
 import { ShareReportButton } from "@/components/share-report-button";
 import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/competitors";
-import { getReportViewForTicker } from "@/domain/report-cache";
+import { getInstantReportViewForTicker, getReportViewForTicker } from "@/domain/report-cache";
 import { resolveTickerQuery } from "@/domain/ticker-resolver";
 import { getMarketDataService } from "@/services/marketData";
 import type { MarketSnapshot } from "@/services/marketData/types";
@@ -17,6 +18,7 @@ import { getVisitorMetadata } from "@/lib/request-metadata";
 
 type ReportPageProps = {
   params: Promise<{ ticker: string }>;
+  searchParams?: Promise<{ fresh?: string; live?: string; refresh?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -49,15 +51,21 @@ export async function generateMetadata({ params }: ReportPageProps): Promise<Met
   };
 }
 
-export default async function ReportPage({ params }: ReportPageProps) {
+export default async function ReportPage({ params, searchParams }: ReportPageProps) {
   const { ticker } = await params;
+  const query = searchParams ? await searchParams : {};
   const resolved = await resolveTickerQuery(decodeURIComponent(ticker));
   if (!resolved.ok) notFound();
 
   const headerStore = await headers();
-  const reportView = await getReportViewForTicker(resolved.data.ticker, {
-    visitor: getVisitorMetadata(headerStore),
-  });
+  const shouldReadFreshReport = query.fresh === "1";
+  const reportView = shouldReadFreshReport
+    ? await getReportViewForTicker(resolved.data.ticker, {
+        visitor: getVisitorMetadata(headerStore),
+      })
+    : await getInstantReportViewForTicker(resolved.data.ticker);
+  const needsAiGeneration =
+    "needsAiGeneration" in reportView && reportView.needsAiGeneration === true;
   const report = reportView.payload;
   const freshMarketData = shouldFetchFreshMarketData(reportView.generatedAt)
     ? await getFreshMarketData(resolved.data.ticker, resolved.data.symbol)
@@ -169,6 +177,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
       {/* Content — single column on mobile, full-width dashboard on desktop */}
       <div className="mx-auto w-full max-w-[430px] lg:max-w-[1320px] px-4 lg:px-10 pt-6 lg:pt-10 pb-24 flex flex-col gap-5 lg:gap-6">
+        <LiveAnalysisRefresh ticker={report.ticker} enabled={needsAiGeneration} />
 
         {/* ── Hero header ── */}
         <div className="lg:flex lg:items-end lg:justify-between lg:gap-8">
