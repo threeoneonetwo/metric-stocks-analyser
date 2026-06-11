@@ -25,6 +25,7 @@ type SummaryRow = {
   completed_analyses: string | number | null;
   errors: string | number | null;
   people_analysed: string | number | null;
+  month_people_analysed: string | number | null;
 };
 
 type TopTickerRow = {
@@ -49,6 +50,7 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
       completedAnalyses: 0,
       errors: 0,
       peopleAnalysed: 0,
+      monthPeopleAnalysed: 0,
       topTickers: [],
     });
   }
@@ -56,13 +58,22 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
   const sql = neon(process.env.DATABASE_URL);
   const dayStart = sql`(${selectedDate}::date::timestamp at time zone 'Asia/Kolkata')`;
   const dayEnd = sql`((${selectedDate}::date + interval '1 day')::timestamp at time zone 'Asia/Kolkata')`;
+  const monthStart = sql`(date_trunc('month', ${selectedDate}::date)::timestamp at time zone 'Asia/Kolkata')`;
+  const monthEnd = sql`((date_trunc('month', ${selectedDate}::date) + interval '1 month')::timestamp at time zone 'Asia/Kolkata')`;
 
   const [summaryRows, topTickerRows] = await Promise.all([
     sql`select
         count(*) as total_analyses,
         count(*) filter (where outcome in ('ready', 'cache_hit')) as completed_analyses,
         count(*) filter (where outcome = 'error') as errors,
-        count(distinct ip_hash) filter (where ip_hash is not null) as people_analysed
+        count(distinct ip_hash) filter (where ip_hash is not null) as people_analysed,
+        (
+          select count(distinct month_jobs.ip_hash)
+          from generation_jobs as month_jobs
+          where month_jobs.started_at >= ${monthStart}
+            and month_jobs.started_at < ${monthEnd}
+            and month_jobs.ip_hash is not null
+        ) as month_people_analysed
       from generation_jobs
       where started_at >= ${dayStart} and started_at < ${dayEnd}` as unknown as Promise<SummaryRow[]>,
     sql`select ticker, count(*) as analyses
@@ -83,6 +94,7 @@ export async function getDashboardData(selectedDateInput?: string | null): Promi
     completedAnalyses: toNumber(summary.completed_analyses),
     errors: toNumber(summary.errors),
     peopleAnalysed: toNumber(summary.people_analysed),
+    monthPeopleAnalysed: toNumber(summary.month_people_analysed),
     topTickers: topTickerRows.map((row) => ({
       ticker: row.ticker,
       analyses: toNumber(row.analyses),
@@ -98,10 +110,14 @@ function buildDashboardData(input: {
   completedAnalyses: number;
   errors: number;
   peopleAnalysed: number;
+  monthPeopleAnalysed: number;
   topTickers: DashboardData["topTickers"];
 }): DashboardData {
   const estimatedVisitors = input.peopleAnalysed
     ? Math.round(input.peopleAnalysed / VISITOR_ESTIMATE_CONVERSION_RATE)
+    : 0;
+  const monthEstimatedVisitors = input.monthPeopleAnalysed
+    ? Math.round(input.monthPeopleAnalysed / VISITOR_ESTIMATE_CONVERSION_RATE)
     : 0;
 
   return {
@@ -138,6 +154,18 @@ function buildDashboardData(input: {
         value: formatInteger(input.errors),
         detail: "Failed analysis requests",
         tone: input.errors > 0 ? "bad" : "good",
+      },
+      {
+        label: "Month visitors",
+        value: formatInteger(monthEstimatedVisitors),
+        detail: "Current calendar month estimate",
+        tone: monthEstimatedVisitors > 0 ? "good" : "neutral",
+      },
+      {
+        label: "Month users",
+        value: formatInteger(input.monthPeopleAnalysed),
+        detail: "Unique people who analysed this month",
+        tone: input.monthPeopleAnalysed > 0 ? "good" : "neutral",
       },
     ],
     topTickers: input.topTickers,

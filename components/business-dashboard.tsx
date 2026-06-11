@@ -94,7 +94,7 @@ export function BusinessDashboard({ initialData }: { initialData: DashboardData 
           <p className="mt-5 text-sm font-bold text-[#64748b]">{data.dateLabel}</p>
         </section>
 
-        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
           {data.kpis.map((metric) => (
             <KpiCard key={metric.label} metric={metric} />
           ))}
