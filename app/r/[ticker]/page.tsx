@@ -518,43 +518,27 @@ function ReadableBrief({
 
   return (
     <div className={`space-y-4 text-sm leading-7 lg:text-[15px] lg:leading-8 ${textColor} ${className}`}>
-      {sections.opening ? <p>{sections.opening}</p> : null}
-      {sections.bullets.length ? (
-        <ul className="space-y-2.5 pl-1">
-          {sections.bullets.map((item) => (
-            <li key={item} className="grid grid-cols-[0.5rem_1fr] gap-3">
-              <span className="mt-3 h-1.5 w-1.5 rounded-full bg-[#b8c4ff]" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {sections.closing ? <p>{sections.closing}</p> : null}
+      {sections.map((paragraph) => (
+        <p key={paragraph}>{paragraph}</p>
+      ))}
     </div>
   );
 }
 
 function splitBriefText(text: string) {
-  const normalized = text.replace(/\s+/g, " ").trim();
+  const normalized = text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .trim();
   if (!normalized) {
-    return { opening: "", bullets: [], closing: "" };
+    return [];
   }
 
-  const sentences = normalized.match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g)?.map((sentence) => sentence.trim()) ?? [normalized];
-
-  if (sentences.length <= 3) {
-    return {
-      opening: sentences[0] ?? "",
-      bullets: sentences.slice(1, -1),
-      closing: sentences.length > 1 ? sentences.at(-1) ?? "" : "",
-    };
-  }
-
-  const opening = sentences.slice(0, 2).join(" ");
-  const closing = sentences.at(-1) ?? "";
-  const bullets = sentences.slice(2, -1);
-
-  return { opening, bullets, closing };
+  return normalized
+    .split(/\n{2,}/)
+    .flatMap((block) => block.split(/\n(?=(?:[•*]|\d+[.)])\s+)/))
+    .map((paragraph) => paragraph.replace(/^([•*]|\d+[.)])\s+/, "").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
 }
 
 function shouldFetchFreshMarketData(generatedAt: Date | undefined) {
