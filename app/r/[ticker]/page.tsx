@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { AlertTriangle, Bolt, RefreshCw, TrendingDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReportViewEvent } from "@/components/analytics-events";
+import { BriefCardDeck } from "@/components/brief-card-deck";
 import { LiveAnalysisRefresh } from "@/components/live-analysis-refresh";
 import { ShareReportButton } from "@/components/share-report-button";
 import { getPeerComparisonLabels, shouldReplacePeerLabels } from "@/domain/competitors";
@@ -226,7 +227,7 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
             </h2>
             <span className="text-[9px] text-[#8e909f] opacity-60 uppercase tracking-widest">Analyst Brief</span>
           </div>
-          <ReadableBrief text={report.summary} className="mb-5" />
+          <BriefCardDeck paragraphs={splitBriefText(report.summary)} className="mb-5" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4" style={{ borderTop: `1px solid ${G}` }}>
             {[signalTiles[0], signalTiles[3], signalTiles[6], signalTiles[7]].map((tile) => (
               <div key={tile.label}>
@@ -276,7 +277,7 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
               <RefreshCw size={14} />
             </Link>
           </div>
-          <ReadableBrief text={metricBrief} muted />
+          <BriefCardDeck paragraphs={splitBriefText(metricBrief)} muted />
         </section>
 
         {/* ── News Sentiment ── */}
@@ -471,10 +472,10 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
               <h2 className="text-lg font-bold text-[#b8c4ff] tracking-tight">Analyst Verdict</h2>
             </div>
             {verdict ? (
-              <ReadableBrief text={verdict} muted />
+              <BriefCardDeck paragraphs={splitBriefText(verdict)} muted />
             ) : (
-              <ReadableBrief
-                text="Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data."
+              <BriefCardDeck
+                paragraphs={splitBriefText("Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data.")}
                 muted
               />
             )}
@@ -504,27 +505,6 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
   );
 }
 
-function ReadableBrief({
-  text,
-  muted = false,
-  className = "",
-}: {
-  text: string;
-  muted?: boolean;
-  className?: string;
-}) {
-  const sections = splitBriefText(text);
-  const textColor = muted ? "text-[#c4c5d5]" : "text-[#dae2fd]";
-
-  return (
-    <div className={`space-y-4 text-sm leading-7 lg:text-[15px] lg:leading-8 ${textColor} ${className}`}>
-      {sections.map((paragraph) => (
-        <p key={paragraph}>{paragraph}</p>
-      ))}
-    </div>
-  );
-}
-
 function splitBriefText(text: string) {
   const normalized = text
     .replace(/\r\n/g, "\n")
@@ -538,7 +518,42 @@ function splitBriefText(text: string) {
     .split(/\n{2,}/)
     .flatMap((block) => block.split(/\n(?=(?:[•*]|\d+[.)])\s+)/))
     .map((paragraph) => paragraph.replace(/^([•*]|\d+[.)])\s+/, "").replace(/\s+/g, " ").trim())
+    .flatMap((paragraph) => splitLongParagraph(paragraph))
     .filter(Boolean);
+}
+
+function splitLongParagraph(paragraph: string) {
+  if (paragraph.length < 420) {
+    return [paragraph];
+  }
+
+  const sentences = paragraph
+    .split(/(?<=[.!?])\s+(?=[A-Z(])/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  if (sentences.length < 4) {
+    return [paragraph];
+  }
+
+  const paragraphs: string[] = [];
+  let current = "";
+
+  for (const sentence of sentences) {
+    const next = current ? `${current} ${sentence}` : sentence;
+    if (current && next.length > 360) {
+      paragraphs.push(current);
+      current = sentence;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) {
+    paragraphs.push(current);
+  }
+
+  return paragraphs;
 }
 
 function shouldFetchFreshMarketData(generatedAt: Date | undefined) {
