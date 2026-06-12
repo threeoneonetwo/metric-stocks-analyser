@@ -226,7 +226,7 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
             </h2>
             <span className="text-[9px] text-[#8e909f] opacity-60 uppercase tracking-widest">Analyst Brief</span>
           </div>
-          <p className="text-sm lg:text-[15px] text-[#dae2fd] leading-relaxed mb-5">{report.summary}</p>
+          <ReadableBrief text={report.summary} className="mb-5" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4" style={{ borderTop: `1px solid ${G}` }}>
             {[signalTiles[0], signalTiles[3], signalTiles[6], signalTiles[7]].map((tile) => (
               <div key={tile.label}>
@@ -276,7 +276,7 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
               <RefreshCw size={14} />
             </Link>
           </div>
-          <p className="text-sm text-[#c4c5d5] leading-relaxed">{metricBrief}</p>
+          <ReadableBrief text={metricBrief} muted />
         </section>
 
         {/* ── News Sentiment ── */}
@@ -465,24 +465,23 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
 
         {/* ── Verdict ── */}
         <section className="rounded-xl p-6 lg:p-8 mb-2" style={{ background: "linear-gradient(135deg, rgba(30,64,175,0.2) 0%, rgba(11,19,38,0.4) 100%)", border: "1px solid rgba(184,196,255,0.25)" }}>
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end lg:gap-5">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1.5 h-5 rounded-full bg-[#b8c4ff]" />
-                <h2 className="text-lg font-bold text-[#b8c4ff] tracking-tight">Analyst Verdict</h2>
-              </div>
-              {verdict ? (
-                <p className="mb-6 max-w-5xl text-sm text-[#c4c5d5] leading-[1.8] lg:mb-0 lg:text-base lg:leading-[1.75]">{verdict}</p>
-              ) : (
-                <p className="mb-6 max-w-5xl text-sm text-[#c4c5d5] leading-[1.8] lg:mb-0 lg:text-base lg:leading-[1.75]">
-                  Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data.
-                </p>
-              )}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1.5 h-5 rounded-full bg-[#b8c4ff]" />
+              <h2 className="text-lg font-bold text-[#b8c4ff] tracking-tight">Analyst Verdict</h2>
             </div>
+            {verdict ? (
+              <ReadableBrief text={verdict} muted />
+            ) : (
+              <ReadableBrief
+                text="Claude analyst verdict is refreshing for this ticker. The live signal grid above is still grounded in the latest available market data."
+                muted
+              />
+            )}
             <ShareReportButton
               ticker={report.ticker}
               companyName={report.companyName}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#b8c4ff] py-3 text-sm font-bold text-[#0b1326] transition-colors hover:bg-[#dde1ff] lg:mb-1"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-[#b8c4ff] py-3 text-sm font-bold text-[#0b1326] transition-colors hover:bg-[#dde1ff] sm:w-64"
             />
           </div>
         </section>
@@ -503,6 +502,59 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
       </footer>
     </main>
   );
+}
+
+function ReadableBrief({
+  text,
+  muted = false,
+  className = "",
+}: {
+  text: string;
+  muted?: boolean;
+  className?: string;
+}) {
+  const sections = splitBriefText(text);
+  const textColor = muted ? "text-[#c4c5d5]" : "text-[#dae2fd]";
+
+  return (
+    <div className={`space-y-4 text-sm leading-7 lg:text-[15px] lg:leading-8 ${textColor} ${className}`}>
+      {sections.opening ? <p>{sections.opening}</p> : null}
+      {sections.bullets.length ? (
+        <ul className="space-y-2.5 pl-1">
+          {sections.bullets.map((item) => (
+            <li key={item} className="grid grid-cols-[0.5rem_1fr] gap-3">
+              <span className="mt-3 h-1.5 w-1.5 rounded-full bg-[#b8c4ff]" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {sections.closing ? <p>{sections.closing}</p> : null}
+    </div>
+  );
+}
+
+function splitBriefText(text: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return { opening: "", bullets: [], closing: "" };
+  }
+
+  const sentences = normalized.match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g)?.map((sentence) => sentence.trim()) ?? [normalized];
+
+  if (sentences.length <= 3) {
+    return {
+      opening: sentences[0] ?? "",
+      bullets: sentences.slice(1, -1),
+      closing: sentences.length > 1 ? sentences.at(-1) ?? "" : "",
+    };
+  }
+
+  const opening = sentences.slice(0, 2).join(" ");
+  const closing = sentences.at(-1) ?? "";
+  const bullets = sentences.slice(2, -1);
+
+  return { opening, bullets, closing };
 }
 
 function shouldFetchFreshMarketData(generatedAt: Date | undefined) {
