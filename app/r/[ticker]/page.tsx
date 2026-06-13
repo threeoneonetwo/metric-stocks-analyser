@@ -337,24 +337,34 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
 
         {/* ── Business Quality ── */}
         <section className="glass-panel p-5 lg:col-span-12 lg:p-6">
-          <h2 className="text-base font-semibold text-[#dae2fd] mb-4">{hasFundamentalData ? "Business Quality" : "Market Feed"}</h2>
-          <div className="space-y-4 lg:grid lg:grid-cols-6 lg:gap-3 lg:space-y-0">
+          <h2 className="mb-4 text-base font-semibold text-[#dae2fd]">{hasFundamentalData ? "Business Quality" : "Market Feed"}</h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
             {displayMetrics.slice(0, 6).map(([label, value, yoy, median]) => {
               const hasYoY = isMeaningfulMetricMovement(yoy);
               const hasMedian = Boolean(median && median !== "N/A");
               return (
                 <div
                   key={label}
-                  className="flex items-center justify-between lg:min-h-[8.75rem] lg:flex-col lg:items-start lg:justify-between lg:rounded-lg lg:p-4"
-                  style={{ background: "rgba(23,31,51,0.7)", border: `1px solid ${G}` }}
+                  className="flex min-h-[8.5rem] flex-col justify-between rounded-xl border border-white/10 bg-[#111a30]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] lg:min-h-[8.75rem]"
                 >
-                  <div>
-                    <p className="text-[9px] text-[#8e909f] uppercase tracking-wider">{label}</p>
-                    <p className="text-2xl font-bold text-[#dae2fd] mt-0.5 lg:text-3xl">{value}</p>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8e909f]">{label}</p>
+                    <p className="break-words text-[28px] font-black leading-none tracking-[-0.02em] text-[#dae2fd] lg:text-[30px]">
+                      {value}
+                    </p>
                   </div>
-                  <div className="text-right text-[9px] lg:text-left">
-                    {hasYoY && <p className={yoy.startsWith("-") ? "text-[#f43f5e]" : "text-[#4ade80]"}>{yoy}</p>}
-                    {hasMedian && <p className="text-[#8e909f] mt-0.5">Median {median}</p>}
+
+                  <div className="flex min-h-5 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.08em]">
+                    {hasYoY && (
+                      <span className={`rounded-full px-2 py-1 ${yoy.startsWith("-") ? "bg-[#f43f5e]/10 text-[#fda4af]" : "bg-[#4ade80]/10 text-[#86efac]"}`}>
+                        {yoy}
+                      </span>
+                    )}
+                    {hasMedian && (
+                      <span className="truncate rounded-full bg-white/5 px-2 py-1 text-[#a8adbf]">
+                        Median {median}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
