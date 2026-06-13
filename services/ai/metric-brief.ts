@@ -72,7 +72,7 @@ export async function generateMetricBrief(input: {
   const data = buildMarketPayload(input.companyName, input.marketData, input.metrics, input.signals);
 
   const system =
-    "You are a senior Indian equities analyst writing a live market commentary. Write one fluid paragraph of 90 to 130 words specifically about this stock right now. Do not follow a template. Start with the most meaningful thing about the current setup, then weave together the signals that matter most. Every sentence must add interpretive value the reader cannot get by just reading the numbers. Be specific to this company and this data. Never say 'the stock' generically when you can say what the move implies. No bullet points. No headers. No dashes of any kind. No financial advice. ONLY use numbers that appear in the provided data.";
+    "You are a senior Indian equities analyst writing for a normal person who wants to understand a stock before buying it. Write in 3 short card-ready paragraphs separated by blank lines. Each paragraph must be 35 to 55 words and should explain one idea clearly: what is happening, why it matters, and what to watch next. Keep it specific to this company and this data. Use plain English, not finance jargon unless you explain the meaning. Do not follow a template. No bullet points. No headers. No dashes of any kind. No financial advice. ONLY use numbers that appear in the provided data.";
 
   try {
     const result = await withTimeout(
@@ -126,7 +126,7 @@ export async function generatePeerInsight(input: {
   });
 
   const system =
-    "You are a senior Indian equities analyst. Write one natural 90 to 120 word paragraph that explains what the peer setup means. Do not follow a fixed order. Start with the most useful contrast between the company and peers. Avoid generic lines about alignment, confirmation, or single data points. No bullet points. No headers. No dashes. No financial advice. Only reference numbers present in the data.";
+    "You are a senior Indian equities analyst. Write 2 short card-ready paragraphs separated by a blank line. Each paragraph must be 35 to 55 words and explain what the peer setup means in plain English. Start with the most useful contrast between the company and peers. Avoid generic lines about alignment, confirmation, or single data points. No bullet points. No headers. No dashes. No financial advice. Only reference numbers present in the data.";
 
   try {
     const { text } = await generateText({
@@ -179,7 +179,7 @@ export async function generateReportInsights(input: {
   const data = buildMarketPayload(input.companyName, input.marketData, input.metrics, input.signals);
 
   const system =
-    "You are a senior Indian equities analyst writing for a serious investor. Write like a person, not like a report template. Interpret what the data means, not what it says. Take a clear point of view, but do not recommend buying, selling, or holding. Be specific to this company and this exact data. Avoid generic scaffolding that could apply to any stock. Never use these phrases or close variants: sellers are setting the tone, current price sits, on fundamentals, technically, news flow is, the cleaner conclusion, alignment matters, read together. No dashes of any kind. No bullet points. Only reference numbers present in the provided data.";
+    "You are a senior Indian equities analyst writing for a serious investor, but the reader is not a finance professional. Write like a person, not like a report template. Interpret what the data means, not what it says. Take a clear point of view, but do not recommend buying, selling, or holding. Be specific to this company and this exact data. Avoid generic scaffolding that could apply to any stock. For long fields, use short card-ready paragraphs separated by blank lines. Never use these phrases or close variants: sellers are setting the tone, current price sits, on fundamentals, technically, news flow is, the cleaner conclusion, alignment matters, read together. No dashes of any kind. No bullet points. Only reference numbers present in the provided data.";
 
   const prompt = `Analyse ${input.companyName} using ONLY this data:
 
@@ -193,7 +193,7 @@ Generate each field:
 - earningsRisk: 2-3 sentences. Use the quality and profitability metrics. What does the earnings quality data reveal about the durability of the business performance?
 - marketTiming: 2-3 sentences. Using the technical signals and news tone, what does the timing setup look like? Is the entry window compelling, cautious, or neutral?
 - newsContext: 1-2 sentences. What does the overall news tone and the top headline signal about market perception of this company right now?
-- whatThisMeans: One natural paragraph of 110-150 words, written like an analyst explaining the setup to a colleague. Do not follow the field order above. Start with the most interesting tension in the data, not with the daily price move unless that is genuinely the main story. Blend price action, range, fundamentals, technicals, and news into a single view. Use the company name or business context where possible. Avoid formulaic transitions such as "on fundamentals", "technically", or "news flow". End with the one thing that would most change the read.`;
+- whatThisMeans: 3 short paragraphs separated by blank lines, 35 to 55 words each. Write like an analyst explaining the setup to a smart friend. Card 1 should explain the main tension in the data. Card 2 should explain what supports or weakens that read. Card 3 should explain what would most change the read. Do not follow the field order above. Use the company name or business context where possible. Avoid formulaic transitions such as "on fundamentals", "technically", or "news flow".`;
 
   try {
     const result = await withTimeout(

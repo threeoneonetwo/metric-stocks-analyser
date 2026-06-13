@@ -523,7 +523,7 @@ function splitBriefText(text: string) {
 }
 
 function splitLongParagraph(paragraph: string) {
-  if (paragraph.length < 420) {
+  if (paragraph.length < 300) {
     return [paragraph];
   }
 
@@ -541,7 +541,7 @@ function splitLongParagraph(paragraph: string) {
 
   for (const sentence of sentences) {
     const next = current ? `${current} ${sentence}` : sentence;
-    if (current && next.length > 360) {
+    if (current && next.length > 260) {
       paragraphs.push(current);
       current = sentence;
     } else {

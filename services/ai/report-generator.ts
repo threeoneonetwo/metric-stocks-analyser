@@ -5,7 +5,7 @@ import type { ReportPayload, ReportSourceData } from "@/db/types";
 import { getMockReport } from "@/domain/mock-report";
 import type { MarketSnapshot } from "@/services/marketData/types";
 
-export const REPORT_PROMPT_VERSION = 8;
+export const REPORT_PROMPT_VERSION = 9;
 
 const generatedMetricSchema = z.object({
   label: z.string().min(1),
@@ -74,7 +74,7 @@ export async function generateReportPayload(
     "Wrong: 'EBITDA Margin is ~11.5% vs sector median 10.8%.' Right: 'Above-median margins suggest pricing power or cost discipline is holding, but the YoY direction matters more — expanding margins compound, contracting ones don\\'t.'",
     "",
     "overview: Explain the business model in one sentence, then where the real operating leverage or fragility sits — not what the company does generically, but what drives or kills the profit line. Do not repeat market data.",
-    "summary: One analyst paragraph. Interpret the full picture: what the price position relative to its range implies about sentiment, whether volume gives that move credibility, what peer behaviour reveals about sector vs company-specific drivers, and what the fundamentals confirm or leave unresolved. Every sentence must add a new interpretive point. No sentence should restate a number the reader already sees.",
+    "summary: Write 3 short card-ready paragraphs separated by blank lines. Each paragraph must be 35 to 55 words. Card 1 should explain the main market read. Card 2 should explain what quality, valuation, or balance-sheet data adds. Card 3 should explain what a reader should watch next. Keep it contextual to the company and easy to understand.",
     "Use six metric rows. Prioritize Upstox key ratios and sector benchmark medians where available. Each row needs label, value, yoy, median.",
     "Use exactly three peer labels: this ticker plus the top two direct competitors from the peers field.",
     "Avoid buy, sell, hold, accumulate, avoid, target price, stop loss, multibagger, guaranteed, recommendation language, and disclaimers.",

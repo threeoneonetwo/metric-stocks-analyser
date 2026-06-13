@@ -33,13 +33,29 @@ export function BriefCardDeck({ paragraphs, muted = false, className = "" }: Bri
   if (!current) return null;
 
   return (
-    <div className={`rounded-xl border border-white/10 bg-[#111a30]/70 ${className}`}>
+    <div className={`overflow-hidden rounded-xl border border-white/10 bg-[#111a30]/70 ${className}`}>
       <div
-        className="min-h-[10rem] px-4 py-4 sm:px-5 sm:py-5"
+        className="h-[18rem] overflow-hidden sm:h-[16rem] lg:h-[15rem]"
         onTouchStart={(event) => setTouchStart(event.changedTouches[0]?.clientX ?? null)}
         onTouchEnd={(event) => onTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
       >
-        <p className={`text-sm leading-7 lg:text-[15px] lg:leading-8 ${textColor}`}>{current}</p>
+        <div
+          className="flex h-full transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${index * 100}%)` }}
+        >
+          {cards.map((card, cardIndex) => (
+            <article
+              key={`${cardIndex}-${card.slice(0, 24)}`}
+              className="h-full w-full shrink-0 overflow-y-auto px-4 pb-7 pt-5 sm:px-5 sm:pb-8 sm:pt-6"
+            >
+              <p
+                className={`font-[Arial] text-sm font-semibold leading-7 tracking-normal lg:text-[15px] lg:leading-8 ${textColor}`}
+              >
+                {card}
+              </p>
+            </article>
+          ))}
+        </div>
       </div>
 
       <div className="flex items-center justify-between border-t border-white/10 px-3 py-3">
