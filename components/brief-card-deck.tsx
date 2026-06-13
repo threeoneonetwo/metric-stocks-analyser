@@ -35,7 +35,7 @@ export function BriefCardDeck({ paragraphs, muted = false, className = "" }: Bri
   return (
     <div className={`overflow-hidden rounded-xl border border-white/10 bg-[#111a30]/70 ${className}`}>
       <div
-        className="h-[18rem] overflow-hidden sm:h-[16rem] lg:h-[15rem]"
+        className="h-[16rem] overflow-hidden sm:h-[14rem] lg:h-[12rem] xl:h-[11rem]"
         onTouchStart={(event) => setTouchStart(event.changedTouches[0]?.clientX ?? null)}
         onTouchEnd={(event) => onTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
       >
@@ -46,10 +46,10 @@ export function BriefCardDeck({ paragraphs, muted = false, className = "" }: Bri
           {cards.map((card, cardIndex) => (
             <article
               key={`${cardIndex}-${card.slice(0, 24)}`}
-              className="h-full w-full shrink-0 overflow-y-auto px-4 pb-7 pt-5 sm:px-5 sm:pb-8 sm:pt-6"
+              className="h-full w-full shrink-0 overflow-y-auto px-4 pb-6 pt-5 sm:px-5 lg:px-6 lg:pb-6 lg:pt-5"
             >
               <p
-                className={`font-[Arial] text-sm font-semibold leading-7 tracking-normal lg:text-[15px] lg:leading-8 ${textColor}`}
+                className={`font-[Arial] text-sm font-semibold leading-7 tracking-normal lg:text-base lg:leading-8 xl:text-[17px] ${textColor}`}
               >
                 {card}
               </p>
